@@ -1,0 +1,8 @@
+{
+  "schemaVersion": 1,
+  "block": "minecraft:soul_campfire",
+  "category": "amenities",
+  "properties": {
+    "lit": "true"
+  }
+}

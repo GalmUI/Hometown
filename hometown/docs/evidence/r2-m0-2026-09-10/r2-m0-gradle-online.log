@@ -1,0 +1,94 @@
+To honour the JVM settings for this build a single-use Daemon process will be forked. For more on this, please refer to https://docs.gradle.org/9.2.1/userguide/gradle_daemon.html#sec:disabling_the_daemon in the Gradle documentation.
+Daemon will be stopped at the end of the build 
+> Task :createMinecraftArtifacts UP-TO-DATE
+> Task :compileJava UP-TO-DATE
+> Task :processResources UP-TO-DATE
+> Task :classes UP-TO-DATE
+> Task :jarJar NO-SOURCE
+> Task :jar UP-TO-DATE
+> Task :sourcesJar UP-TO-DATE
+> Task :compileTestJava
+
+> Task :downloadAssets
+Loaded 145 artifacts from C:\Users\solow\Documents\Codex\2026-09-09\files-pasted-by-the-user-hometown\outputs\hometown\build\tmp\downloadAssets\nfrt_artifact_manifest.properties
+Downloading asset index 17
+Using Minecraft asset root: C:\Users\solow\Documents\Codex\2026-09-09\files-pasted-by-the-user-hometown\work\gradle-cache\caches\neoformruntime\assets
+  DL    https://piston-meta.mojang.com/v1/packages/5e6acec58d4651330c757ff77f105fd0076339a0/17.json
+100/3888 downloads
+200/3888 downloads
+300/3888 downloads
+400/3888 downloads
+500/3888 downloads
+600/3888 downloads
+700/3888 downloads
+800/3888 downloads
+900/3888 downloads
+1000/3888 downloads
+1100/3888 downloads
+1200/3888 downloads
+1300/3888 downloads
+1400/3888 downloads
+1500/3888 downloads
+1600/3888 downloads
+1700/3888 downloads
+1800/3888 downloads
+1900/3888 downloads
+2000/3888 downloads
+2100/3888 downloads
+2200/3888 downloads
+2300/3888 downloads
+2400/3888 downloads
+2500/3888 downloads
+2600/3888 downloads
+2700/3888 downloads
+2800/3888 downloads
+2900/3888 downloads
+3000/3888 downloads
+3100/3888 downloads
+3200/3888 downloads
+3300/3888 downloads
+3400/3888 downloads
+3500/3888 downloads
+3600/3888 downloads
+3700/3888 downloads
+3800/3888 downloads
+Downloaded 3888 files with a total size of 786 MiB
+
+> Task :writeNeoForgeTestClasspath
+> Task :prepareNeoForgeTestFiles
+> Task :processTestResources NO-SOURCE
+> Task :testClasses
+> Task :test FAILED
+
+FAILURE: Build failed with an exception.
+
+* What went wrong:
+Execution failed for task ':test'.
+> Test process encountered an unexpected problem.
+   > Could not execute test class 'dev.conner.hometown.client.TownLedgerScreenTest'.
+   > Could not execute test class 'dev.conner.hometown.command.RoomDebugCommandTest'.
+   > Could not execute test class 'dev.conner.hometown.food.FoodRobustnessTest'.
+   > Could not execute test class 'dev.conner.hometown.food.FoodScannerTest$World'.
+   > Could not execute test class 'dev.conner.hometown.food.FoodScannerTest'.
+   > Could not execute test class 'dev.conner.hometown.room.HousingIntegrationTest'.
+   > Could not execute test class 'dev.conner.hometown.room.PrivacyIntegrationTest'.
+   > Could not execute test class 'dev.conner.hometown.room.RoomDetectorTest$Fixture'.
+   > Could not execute test class 'dev.conner.hometown.room.RoomDetectorTest'.
+   > Could not execute test class 'dev.conner.hometown.settlement.LedgerAndPayloadTest'.
+   > Could not execute test class 'dev.conner.hometown.settlement.SettlementManagerTest'.
+   > Could not execute test class 'dev.conner.hometown.settlement.SettlementPersistenceTest'.
+   > Could not execute test class 'dev.conner.hometown.settlement.SettlementScannerTest'.
+   > Could not execute test class 'dev.conner.hometown.settlement.SettlementValidatorTest'.
+   > Could not execute test class 'dev.conner.hometown.settlement.TownLedgerServiceTest'.
+   > Could not execute test class 'dev.conner.hometown.settlement.TownLedgerSnapshotTest'.
+   > Could not execute test class 'dev.conner.hometown.settlement.TownNamesTest'.
+
+* Try:
+> Check common problems https://docs.gradle.org/9.2.1/userguide/java_testing.html#sec:java_testing_troubleshooting.
+> Run with --stacktrace option to get the stack trace.
+> Run with --info or --debug option to get more log output.
+> Run with --scan to generate a Build Scan (powered by Develocity).
+> Get more help at https://help.gradle.org.
+
+BUILD FAILED in 44s
+10 actionable tasks: 5 executed, 5 up-to-date

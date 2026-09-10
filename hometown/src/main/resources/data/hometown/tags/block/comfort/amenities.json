@@ -1,0 +1,10 @@
+{
+  "replace": false,
+  "values": [
+    "minecraft:furnace",
+    "minecraft:smoker",
+    "minecraft:crafting_table",
+    "minecraft:campfire",
+    "minecraft:soul_campfire"
+  ]
+}

@@ -1,0 +1,105 @@
+To honour the JVM settings for this build a single-use Daemon process will be forked. For more on this, please refer to https://docs.gradle.org/9.2.1/userguide/gradle_daemon.html#sec:disabling_the_daemon in the Gradle documentation.
+Daemon will be stopped at the end of the build 
+
+> Task :createMinecraftArtifacts
+Loaded 145 artifacts from C:\Users\solow\Documents\Codex\2026-09-09\files-pasted-by-the-user-hometown\outputs\hometown\build\tmp\createMinecraftArtifacts\nfrt_artifact_manifest.properties
+*** Started working on downloadJson
+ DONE  Completed downloadJson in 0.02s
+*** Started working on downloadClientMappings
+*** Started working on downloadClient
+*** Started working on downloadServer
+ DONE  Completed downloadServer in 0.03s
+ DONE  Completed downloadClient in 0.03s
+ DONE  Completed downloadClientMappings in 0.03s
+*** Started working on mergeMappings
+ REUSE Used cache of mergeMappings in 0.00s
+*** Started working on stripClient
+ REUSE Used cache of stripClient in 0.00s
+*** Started working on extractServer
+ RUN   Running external tool net.neoforged.installertools:installertools:2.1.2:fatjar
+ DONE  Completed extractServer in 0.37s
+*** Started working on stripServer
+ DONE  Completed stripServer in 1.20s
+*** Started working on merge
+ RUN   Running external tool net.neoforged:mergetool:2.0.3:fatjar
+ DONE  Completed merge in 2.63s
+*** Started working on rename
+ RUN   Running external tool net.neoforged:AutoRenamingTool:2.0.3:all
+ DONE  Completed rename in 4.09s
+*** Started working on decompile
+ RUN   Running external tool org.vineflower:vineflower:1.10.1
+ DONE  Completed decompile in 22.10s
+*** Started working on inject
+ DONE  Completed inject in 2.32s
+*** Started working on patch
+ RUN   Running external tool io.codechicken:DiffPatch:2.0.0.36:all
+ DONE  Completed patch in 3.58s
+*** Started working on applyNeoforgePatches
+ RUN   Running external tool io.codechicken:DiffPatch:2.0.0.36:all
+ DONE  Completed applyNeoforgePatches in 2.77s
+*** Started working on transformSources
+ RUN   Running external tool net.neoforged.jst:jst-cli-bundle:2.0.10
+ DONE  Completed transformSources in 5.59s
+*** Started working on recompile
+ 110 items on the compile classpath
+ 0 items on the sourcepath
+*** Started working on sourcesWithNeoForge
+ Compiling 5364 source files
+ DONE  Completed sourcesWithNeoForge in 4.24s
+Copied 0 resource files
+ DONE  Completed recompile in 25.48s
+*** Started working on compiledWithNeoForge
+ DONE  Completed compiledWithNeoForge in 5.62s
+*** Started working on sourcesAndCompiledWithNeoForge
+ DONE  Completed sourcesAndCompiledWithNeoForge in 2.12s
+ Deleted 11 outdated lock files
+Total runtime: 78.89s
+
+
+> Task :compileJava
+C:\Users\solow\Documents\Codex\2026-09-09\files-pasted-by-the-user-hometown\outputs\hometown\src\main\java\dev\conner\hometown\client\HometownClient.java:11: warning: [removal] bus() in EventBusSubscriber has been deprecated and marked for removal
+@EventBusSubscriber(modid = Hometown.MOD_ID, bus = EventBusSubscriber.Bus.MOD, value = Dist.CLIENT)
+                                             ^
+C:\Users\solow\Documents\Codex\2026-09-09\files-pasted-by-the-user-hometown\outputs\hometown\src\main\java\dev\conner\hometown\client\HometownClient.java:11: warning: [removal] Bus in EventBusSubscriber has been deprecated and marked for removal
+@EventBusSubscriber(modid = Hometown.MOD_ID, bus = EventBusSubscriber.Bus.MOD, value = Dist.CLIENT)
+                                                                     ^
+2 warnings
+
+> Task :processResources
+> Task :classes
+> Task :jarJar NO-SOURCE
+> Task :jar
+> Task :sourcesJar
+> Task :compileTestJava FAILED
+
+[Incubating] Problems report is available at: file:///C:/Users/solow/Documents/Codex/2026-09-09/files-pasted-by-the-user-hometown/outputs/hometown/build/reports/problems/problems-report.html
+
+FAILURE: Build failed with an exception.
+
+* What went wrong:
+Execution failed for task ':compileTestJava'.
+> Could not resolve all files for configuration ':testCompileClasspath'.
+   > Could not resolve org.junit:junit-bom:5.11.4.
+     Required by:
+         root project 'hometown'
+      > No cached version of org.junit:junit-bom:5.11.4 available for offline mode.
+      > No cached version of org.junit:junit-bom:5.11.4 available for offline mode.
+   > Could not resolve org.junit.jupiter:junit-jupiter.
+     Required by:
+         root project 'hometown'
+      > No cached version of org.junit.jupiter:junit-jupiter: available for offline mode.
+      > No cached version of org.junit.jupiter:junit-jupiter: available for offline mode.
+   > Could not resolve org.mockito:mockito-core:5.15.2.
+     Required by:
+         root project 'hometown'
+      > No cached version of org.mockito:mockito-core:5.15.2 available for offline mode.
+      > No cached version of org.mockito:mockito-core:5.15.2 available for offline mode.
+
+* Try:
+> Run with --stacktrace option to get the stack trace.
+> Run with --info or --debug option to get more log output.
+> Run with --scan to generate a Build Scan (powered by Develocity).
+> Get more help at https://help.gradle.org.
+
+BUILD FAILED in 1m 36s
+6 actionable tasks: 6 executed

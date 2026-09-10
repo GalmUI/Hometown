@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="dev.conner.hometown.settlement.LedgerObservationTest" tests="1" skipped="0" failures="0" errors="0" timestamp="2026-09-10T20:51:26.466Z" hostname="SGC-MAINFRAME" time="0.118">
+  <properties/>
+  <testcase name="coalescingCooldownPaginationFreshnessAndInvalidation()" classname="dev.conner.hometown.settlement.LedgerObservationTest" time="0.118"/>
+  <system-out><![CDATA[[15:51:26] [Test worker/WARN] [minecraft/MappedRegistry]: Not all defined tags for registry ResourceKey[minecraft:root / minecraft:entity_type] are present in data pack: hometown:safety/threats
+]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

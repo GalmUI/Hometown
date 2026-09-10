@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="dev.conner.hometown.settlement.TownLedgerSnapshotTest" tests="3" skipped="0" failures="0" errors="0" timestamp="2026-09-10T20:51:27.157Z" hostname="SGC-MAINFRAME" time="0.008">
+  <properties/>
+  <testcase name="unavailableHasIdentityButNoInventedStatisticsAndTextIsWireBounded()" classname="dev.conner.hometown.settlement.TownLedgerSnapshotTest" time="0.001"/>
+  <testcase name="pagesExposeEveryResidentWithoutOversizedPacketsOrMutableLists()" classname="dev.conner.hometown.settlement.TownLedgerSnapshotTest" time="0.003"/>
+  <testcase name="requestsSnapshotsAndGracefulErrorsRoundTrip()" classname="dev.conner.hometown.settlement.TownLedgerSnapshotTest" time="0.003"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

@@ -1,0 +1,2 @@
+47120ddd288361800cd8b543fbb0b55d7ba88b32c1b34a80dfc64a5cbbcbcb7b  hometown-0.4a-food-scan-fix.jar
+3ed3a8159d87d8d1566bf9d08554c729588dc902def5167c1c06594d670b4f0c  hometown-0.4a-food-scan-fix-source.zip

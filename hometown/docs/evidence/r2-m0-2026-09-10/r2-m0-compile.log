@@ -1,0 +1,8 @@
+C:\Users\solow\Documents\Codex\2026-09-09\files-pasted-by-the-user-hometown\outputs\hometown\src\main\java\dev\conner\hometown\client\HometownClient.java:11: warning: [removal] bus() in EventBusSubscriber has been deprecated and marked for removal
+@EventBusSubscriber(modid = Hometown.MOD_ID, bus = EventBusSubscriber.Bus.MOD, value = Dist.CLIENT)
+                                             ^
+C:\Users\solow\Documents\Codex\2026-09-09\files-pasted-by-the-user-hometown\outputs\hometown\src\main\java\dev\conner\hometown\client\HometownClient.java:11: warning: [removal] Bus in EventBusSubscriber has been deprecated and marked for removal
+@EventBusSubscriber(modid = Hometown.MOD_ID, bus = EventBusSubscriber.Bus.MOD, value = Dist.CLIENT)
+                                                                     ^
+2 warnings
+Compilation passed: 43 source files

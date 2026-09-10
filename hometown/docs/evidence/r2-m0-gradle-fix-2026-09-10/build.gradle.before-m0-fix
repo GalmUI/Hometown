@@ -1,0 +1,27 @@
+plugins {
+    id 'java-library'
+    id 'net.neoforged.moddev' version '2.0.146'
+}
+group = 'dev.conner.hometown'
+version = '0.4.0-alpha.2'
+base { archivesName = 'hometown' }
+java.toolchain.languageVersion = JavaLanguageVersion.of(21)
+java.withSourcesJar()
+repositories { mavenCentral() }
+neoForge {
+    version = '21.1.250'
+    runs {
+        client { client() }
+        server { server(); programArgument '--nogui' }
+    }
+    mods { hometown { sourceSet sourceSets.main } }
+    unitTest { enable() }
+}
+dependencies {
+    testImplementation platform('org.junit:junit-bom:5.11.4')
+    testImplementation 'org.junit.jupiter:junit-jupiter'
+    testImplementation 'org.mockito:mockito-core:5.15.2'
+    testRuntimeOnly 'org.junit.platform:junit-platform-launcher'
+}
+tasks.named('test', Test) { useJUnitPlatform() }
+tasks.withType(JavaCompile).configureEach { options.encoding = 'UTF-8' }

@@ -1,0 +1,39 @@
+To honour the JVM settings for this build a single-use Daemon process will be forked. For more on this, please refer to https://docs.gradle.org/9.2.1/userguide/gradle_daemon.html#sec:disabling_the_daemon in the Gradle documentation.
+Daemon will be stopped at the end of the build 
+> Task :createMinecraftArtifacts UP-TO-DATE
+> Task :compileJava UP-TO-DATE
+> Task :processResources UP-TO-DATE
+> Task :classes UP-TO-DATE
+> Task :compileTestJava
+> Task :downloadAssets UP-TO-DATE
+> Task :writeNeoForgeTestClasspath UP-TO-DATE
+> Task :prepareNeoForgeTestFiles UP-TO-DATE
+> Task :processTestResources NO-SOURCE
+> Task :testClasses
+Java HotSpot(TM) 64-Bit Server VM warning: Sharing is only supported for boot loader classes because bootstrap classpath has been appended
+
+> Task :test
+
+LedgerObservationTest > coalescingCooldownPaginationFreshnessAndInvalidation() FAILED
+    org.mockito.exceptions.base.MockitoException at LedgerObservationTest.java:36
+        Caused by: java.lang.IllegalArgumentException at LedgerObservationTest.java:36
+            Caused by: java.lang.ClassFormatError at LedgerObservationTest.java:36
+
+TownLedgerServiceTest > authorityUnknownLedgerBellRecoveryAndMissingDimension() FAILED
+    org.mockito.exceptions.misusing.MissingMethodInvocationException at TownLedgerServiceTest.java:51
+
+132 tests completed, 2 failed
+
+> Task :test FAILED
+
+FAILURE: Build failed with an exception.
+
+* What went wrong:
+Execution failed for task ':test'.
+> There were failing tests. See the report at: file:///C:/Users/solow/Documents/Codex/2026-09-09/files-pasted-by-the-user-hometown/outputs/hometown/build/reports/tests/test/index.html
+
+* Try:
+> Run with --scan to generate a Build Scan (powered by Develocity).
+
+BUILD FAILED in 25s
+8 actionable tasks: 2 executed, 6 up-to-date

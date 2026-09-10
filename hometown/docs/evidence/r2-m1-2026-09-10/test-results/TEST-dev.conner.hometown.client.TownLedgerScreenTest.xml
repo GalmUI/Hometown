@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="dev.conner.hometown.client.TownLedgerScreenTest" tests="3" skipped="0" failures="0" errors="0" timestamp="2026-09-10T20:51:17.399Z" hostname="SGC-MAINFRAME" time="3.599">
+  <properties/>
+  <testcase name="allTabsRenderReadOnlyFactsAndFitNormalGuiScales()" classname="dev.conner.hometown.client.TownLedgerScreenTest" time="3.579"/>
+  <testcase name="staleResponsesAreIgnoredAndUnknownLedgerRendersAnError()" classname="dev.conner.hometown.client.TownLedgerScreenTest" time="0.008"/>
+  <testcase name="residentPaginationSurvivesDevelopmentSubnavigation()" classname="dev.conner.hometown.client.TownLedgerScreenTest" time="0.005"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[Mockito is currently self-attaching to enable the inline-mock-maker. This will no longer work in future releases of the JDK. Please add Mockito as an agent to your build as described in Mockito's documentation: https://javadoc.io/doc/org.mockito/mockito-core/latest/org/mockito/Mockito.html#0.3
+WARNING: A Java agent has been loaded dynamically (C:\Users\solow\Documents\Codex\2026-09-09\files-pasted-by-the-user-hometown\work\gradle-cache\caches\modules-2\files-2.1\net.bytebuddy\byte-buddy-agent\1.15.11\a38b16385e867f59a641330f0362ebe742788ed8\byte-buddy-agent-1.15.11.jar)
+WARNING: If a serviceability tool is in use, please run with -XX:+EnableDynamicAgentLoading to hide this warning
+WARNING: If a serviceability tool is not in use, please run with -Djdk.instrument.traceUsage for more information
+WARNING: Dynamic loading of agents will be disallowed by default in a future release
+]]></system-err>
+</testsuite>

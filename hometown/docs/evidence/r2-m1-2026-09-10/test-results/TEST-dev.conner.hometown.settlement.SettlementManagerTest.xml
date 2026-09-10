@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="dev.conner.hometown.settlement.SettlementManagerTest" tests="10" skipped="0" failures="0" errors="0" timestamp="2026-09-10T20:51:26.590Z" hostname="SGC-MAINFRAME" time="0.185">
+  <properties/>
+  <testcase name="failedLedgerDeliveryRollsBackTownAndKeepsBook()" classname="dev.conner.hometown.settlement.SettlementManagerTest" time="0.136"/>
+  <testcase name="residentRequirementsAreRepeatedAtSubmission()" classname="dev.conner.hometown.settlement.SettlementManagerTest" time="0.007"/>
+  <testcase name="commitsThenDeliversThenConsumesExactlyOneBookAndRejectsReplay()" classname="dev.conner.hometown.settlement.SettlementManagerTest" time="0.006"/>
+  <testcase name="namesAreReservedSaveWideAtFinalSubmission()" classname="dev.conner.hometown.settlement.SettlementManagerTest" time="0.004"/>
+  <testcase name="rejectsUnsolicitedWrongNonceWrongPositionAndCancelledSessions()" classname="dev.conner.hometown.settlement.SettlementManagerTest" time="0.004"/>
+  <testcase name="disabledBookConsumptionStillRequiresBookButKeepsIt()" classname="dev.conner.hometown.settlement.SettlementManagerTest" time="0.005"/>
+  <testcase name="creativeFoundingRetainsBook()" classname="dev.conner.hometown.settlement.SettlementManagerTest" time="0.003"/>
+  <testcase name="distanceDimensionExpiryAndInvalidNameAreRechecked()" classname="dev.conner.hometown.settlement.SettlementManagerTest" time="0.008"/>
+  <testcase name="concurrentAttemptsAtSameBellCreateOneTownAndOnlyWinnerPays()" classname="dev.conner.hometown.settlement.SettlementManagerTest" time="0.006"/>
+  <testcase name="brokenBellOrMissingBookAfterScreenOpensPreventsCommit()" classname="dev.conner.hometown.settlement.SettlementManagerTest" time="0.005"/>
+  <system-out><![CDATA[[15:51:26] [Test worker/INFO] [de.co.ho.Hometown/]: Removed Hometown 'Oakridge' [73639717-573a-4961-8bb0-3456f4964419]
+[15:51:26] [Test worker/INFO] [de.co.ho.Hometown/]: Created Hometown 'Oakridge' [6cfb6941-6fc6-4820-81ad-1b146b3aed0b] at minecraft:overworld 0 64 0
+[15:51:26] [Test worker/INFO] [de.co.ho.Hometown/]: Created Hometown 'Oakridge' [68abf97b-81d0-435c-8c5a-edb5efdf516c] at minecraft:overworld 0 64 0
+[15:51:26] [Test worker/INFO] [de.co.ho.Hometown/]: Created Hometown 'Oakridge' [f1e7c8a5-ec2e-4604-af1d-fada4fd52946] at minecraft:overworld 0 64 0
+[15:51:26] [Test worker/INFO] [de.co.ho.Hometown/]: Created Hometown 'Oakridge' [835cc7ce-ba43-4873-b85b-a8841ee6ed55] at minecraft:overworld 0 64 0
+]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

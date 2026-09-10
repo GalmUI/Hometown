@@ -1,0 +1,8 @@
+{
+  "schemaVersion": 1,
+  "block": "minecraft:redstone_lamp",
+  "category": "lighting",
+  "properties": {
+    "lit": "true"
+  }
+}

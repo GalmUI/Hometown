@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="dev.conner.hometown.command.RoomDebugCommandTest" tests="4" skipped="0" failures="0" errors="0" timestamp="2026-09-10T20:51:21.020Z" hostname="SGC-MAINFRAME" time="1.774">
+  <properties/>
+  <testcase name="operatorGetsReadableCompleteDiagnostic()" classname="dev.conner.hometown.command.RoomDebugCommandTest" time="1.59"/>
+  <testcase name="outdoorFailureLabelsPartialCounts()" classname="dev.conner.hometown.command.RoomDebugCommandTest" time="0.09"/>
+  <testcase name="nonOperatorCannotRunDiagnostic()" classname="dev.conner.hometown.command.RoomDebugCommandTest" time="0.006"/>
+  <testcase name="noNearbyBedHasClearMessage()" classname="dev.conner.hometown.command.RoomDebugCommandTest" time="0.087"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

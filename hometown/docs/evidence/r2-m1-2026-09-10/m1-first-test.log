@@ -1,0 +1,52 @@
+To honour the JVM settings for this build a single-use Daemon process will be forked. For more on this, please refer to https://docs.gradle.org/9.2.1/userguide/gradle_daemon.html#sec:disabling_the_daemon in the Gradle documentation.
+Daemon will be stopped at the end of the build 
+> Task :createMinecraftArtifacts UP-TO-DATE
+
+> Task :compileJava
+C:\Users\solow\Documents\Codex\2026-09-09\files-pasted-by-the-user-hometown\outputs\hometown\src\main\java\dev\conner\hometown\client\HometownClient.java:11: warning: [removal] bus() in EventBusSubscriber has been deprecated and marked for removal
+@EventBusSubscriber(modid = Hometown.MOD_ID, bus = EventBusSubscriber.Bus.MOD, value = Dist.CLIENT)
+                                             ^
+C:\Users\solow\Documents\Codex\2026-09-09\files-pasted-by-the-user-hometown\outputs\hometown\src\main\java\dev\conner\hometown\client\HometownClient.java:11: warning: [removal] Bus in EventBusSubscriber has been deprecated and marked for removal
+@EventBusSubscriber(modid = Hometown.MOD_ID, bus = EventBusSubscriber.Bus.MOD, value = Dist.CLIENT)
+                                                                     ^
+C:\Users\solow\Documents\Codex\2026-09-09\files-pasted-by-the-user-hometown\outputs\hometown\src\main\java\dev\conner\hometown\safety\SafetyCollector.java:48: error: incompatible types: cannot infer type-variable(s) T
+            .sorted(Comparator.comparingInt(BlockPos::getX).thenComparingInt(BlockPos::getY).thenComparingInt(BlockPos::getZ)).toList();
+                                           ^
+    (argument mismatch; invalid method reference
+      incompatible types: Object cannot be converted to long)
+  where T is a type-variable:
+    T extends Object declared in method <T>comparingInt(ToIntFunction<? super T>)
+1 error
+2 warnings
+
+> Task :compileJava FAILED
+
+[Incubating] Problems report is available at: file:///C:/Users/solow/Documents/Codex/2026-09-09/files-pasted-by-the-user-hometown/outputs/hometown/build/reports/problems/problems-report.html
+
+FAILURE: Build failed with an exception.
+
+* What went wrong:
+Execution failed for task ':compileJava'.
+> Compilation failed; see the compiler output below.
+  C:\Users\solow\Documents\Codex\2026-09-09\files-pasted-by-the-user-hometown\outputs\hometown\src\main\java\dev\conner\hometown\safety\SafetyCollector.java:48: error: incompatible types: cannot infer type-variable(s) T
+              .sorted(Comparator.comparingInt(BlockPos::getX).thenComparingInt(BlockPos::getY).thenComparingInt(BlockPos::getZ)).toList();
+                                             ^
+      (argument mismatch; invalid method reference
+        incompatible types: Object cannot be converted to long)
+    where T is a type-variable:
+      T extends Object declared in method <T>comparingInt(ToIntFunction<? super T>)
+  C:\Users\solow\Documents\Codex\2026-09-09\files-pasted-by-the-user-hometown\outputs\hometown\src\main\java\dev\conner\hometown\client\HometownClient.java:11: warning: [removal] bus() in EventBusSubscriber has been deprecated and marked for removal
+  @EventBusSubscriber(modid = Hometown.MOD_ID, bus = EventBusSubscriber.Bus.MOD, value = Dist.CLIENT)
+                                               ^
+  C:\Users\solow\Documents\Codex\2026-09-09\files-pasted-by-the-user-hometown\outputs\hometown\src\main\java\dev\conner\hometown\client\HometownClient.java:11: warning: [removal] Bus in EventBusSubscriber has been deprecated and marked for removal
+  @EventBusSubscriber(modid = Hometown.MOD_ID, bus = EventBusSubscriber.Bus.MOD, value = Dist.CLIENT)
+                                                                       ^
+  1 error
+  2 warnings
+
+* Try:
+> Check your code and dependencies to fix the compilation error(s)
+> Run with --scan to generate a Build Scan (powered by Develocity).
+
+BUILD FAILED in 11s
+2 actionable tasks: 1 executed, 1 up-to-date

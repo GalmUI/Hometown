@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="dev.conner.hometown.room.HousingIntegrationTest" tests="15" skipped="0" failures="0" errors="0" timestamp="2026-09-10T20:51:24.102Z" hostname="SGC-MAINFRAME" time="0.578">
+  <properties/>
+  <testcase name="incompleteSettlementSkipsRoomWorkAndRetainsUnknownCounts()" classname="dev.conner.hometown.room.HousingIntegrationTest" time="0.005"/>
+  <testcase name="windowBreakRepairAndDoorStateRefresh()" classname="dev.conner.hometown.room.HousingIntegrationTest" time="0.202"/>
+  <testcase name="aggregationBudgetStopsNewFills()" classname="dev.conner.hometown.room.HousingIntegrationTest" time="0.001"/>
+  <testcase name="separateBedroomsArePrivate()" classname="dev.conner.hometown.room.HousingIntegrationTest" time="0.037"/>
+  <testcase name="bedHalfBeyondTownEdgeInMissingChunkMakesScanIncomplete()" classname="dev.conner.hometown.room.HousingIntegrationTest" time="0.135"/>
+  <testcase name="serverScanUsesOnlyRelevantIntactVanillaHomePois()" classname="dev.conner.hometown.room.HousingIntegrationTest" time="0.055"/>
+  <testcase name="housingPayloadRoundTripsAllStates()" classname="dev.conner.hometown.room.HousingIntegrationTest" time="0.003"/>
+  <testcase name="unavailableRoomIsUnknownNotUnsealed()" classname="dev.conner.hometown.room.HousingIntegrationTest" time="0.001"/>
+  <testcase name="outOfTownRoomBedsDoNotInflateCapacity()" classname="dev.conner.hometown.room.HousingIntegrationTest" time="0.042"/>
+  <testcase name="volumeFailureIsUnsealedButSessionBudgetIsUnknown()" classname="dev.conner.hometown.room.HousingIntegrationTest" time="0.001"/>
+  <testcase name="sharedBedsDeduplicateRoomAndReuseFill()" classname="dev.conner.hometown.room.HousingIntegrationTest" time="0.043"/>
+  <testcase name="zeroPopulationAndSurplusAndRounding()" classname="dev.conner.hometown.room.HousingIntegrationTest" time="0.002"/>
+  <testcase name="outdoorBedAddsNoCapacity()" classname="dev.conner.hometown.room.HousingIntegrationTest" time="0.042"/>
+  <testcase name="laterEnclosedResultResolvesEarlierLimitedMember()" classname="dev.conner.hometown.room.HousingIntegrationTest" time="0.001"/>
+  <testcase name="baselineAddRemoveAndPopulationChanges()" classname="dev.conner.hometown.room.HousingIntegrationTest" time="0.003"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

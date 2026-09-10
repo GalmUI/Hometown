@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="dev.conner.hometown.settlement.SettlementValidatorTest" tests="4" skipped="0" failures="0" errors="0" timestamp="2026-09-10T20:51:27.127Z" hostname="SGC-MAINFRAME" time="0.018">
+  <properties/>
+  <testcase name="homePoisRequireIntactVanillaBedsAndOnlyLoadedChunksAreQueried()" classname="dev.conner.hometown.settlement.SettlementValidatorTest" time="0.007"/>
+  <testcase name="onlyLivingVanillaVillagersInsideBoundsCountIncludingBabies()" classname="dev.conner.hometown.settlement.SettlementValidatorTest" time="0.005"/>
+  <testcase name="overlapCanBeDisabledButDuplicateAnchorCannot()" classname="dev.conner.hometown.settlement.SettlementValidatorTest" time="0.002"/>
+  <testcase name="rejectsMissingBookBellAndDistantPlayersBeforeScanning()" classname="dev.conner.hometown.settlement.SettlementValidatorTest" time="0.004"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

@@ -1,0 +1,81 @@
+To honour the JVM settings for this build a single-use Daemon process will be forked. For more on this, please refer to https://docs.gradle.org/9.2.1/userguide/gradle_daemon.html#sec:disabling_the_daemon in the Gradle documentation.
+Daemon will be stopped at the end of the build 
+
+> Task :createMinecraftArtifacts
+Loaded 145 artifacts from C:\Users\solow\Documents\Codex\2026-09-09\files-pasted-by-the-user-hometown\outputs\hometown\build\tmp\createMinecraftArtifacts\nfrt_artifact_manifest.properties
+*** Started working on downloadJson
+ DONE  Completed downloadJson in 0.02s
+*** Started working on downloadServer
+*** Started working on downloadClient
+*** Started working on downloadClientMappings
+ DONE  Completed downloadServer in 0.03s
+ DONE  Completed downloadClientMappings in 0.03s
+ DONE  Completed downloadClient in 0.03s
+*** Started working on mergeMappings
+ REUSE Used cache of mergeMappings in 0.00s
+*** Started working on stripClient
+ REUSE Used cache of stripClient in 0.00s
+*** Started working on extractServer
+ RUN   Running external tool net.neoforged.installertools:installertools:2.1.2:fatjar
+Last lines of C:\Users\solow\Documents\Codex\2026-09-09\files-pasted-by-the-user-hometown\outputs\hometown\build\tmp\neoformruntime\20260910-093430_extractServer\console_output.txt:
+------------------------------------------------------------
+2.1\net.neoforged.installertools\installertools\2.1.2\62740d5aa8f75f4a4d542d363bdda5b64a198f7a\installertools-2.1.2-fatjar.jar
+ - --task
+ - bundler_extract
+ - --input
+ - C:\Users\solow\Documents\Codex\2026-09-09\files-pasted-by-the-user-hometown\work\gradle-cache\caches\neoformruntime\artifacts\minecraft_1.21.1_server.jar
+ - --output
+ - ./output.jar
+ - --jar-only
+--------------------------------------------------------------------------------
+
+Task: BUNDLER_EXTRACT
+Input:   C:\Users\solow\Documents\Codex\2026-09-09\files-pasted-by-the-user-hometown\work\gradle-cache\caches\neoformruntime\artifacts\minecraft_1.21.1_server.jar
+Output:  C:\Users\solow\Documents\Codex\2026-09-09\files-pasted-by-the-user-hometown\outputs\hometown\build\tmp\neoformruntime\20260910-093430_extractServer\.\output.jar
+All:     false
+JarOnly: true
+Libs:    false
+Extracted: versions/1.21.1/server-1.21.1.jar
+Exception in thread "main" java.nio.file.AccessDeniedException: C:\Users\solow\Documents\Codex\2026-09-09\files-pasted-by-the-user-hometown\work\gradle-cache\caches\neoformruntime\artifacts\minecraft_1.21.1_server.jar
+	at java.base/sun.nio.fs.WindowsException.translateToIOException(WindowsException.java:89)
+	at java.base/sun.nio.fs.WindowsException.rethrowAsIOException(WindowsException.java:96)
+	at java.base/sun.nio.fs.WindowsLinkSupport.getRealPath(WindowsLinkSupport.java:288)
+	at java.base/sun.nio.fs.WindowsPath.toRealPath(WindowsPath.java:947)
+	at java.base/sun.nio.fs.WindowsPath.toRealPath(WindowsPath.java:42)
+	at jdk.zipfs/jdk.nio.zipfs.ZipFileSystemProvider.lambda$removeFileSystem$0(ZipFileSystemProvider.java:324)
+	at java.base/java.security.AccessController.doPrivileged(AccessController.java:571)
+	at jdk.zipfs/jdk.nio.zipfs.ZipFileSystemProvider.removeFileSystem(ZipFileSystemProvider.java:326)
+	at jdk.zipfs/jdk.nio.zipfs.ZipFileSystem.close(ZipFileSystem.java:526)
+	at net.neoforged.installertools.BundlerExtract.process(BundlerExtract.java:132)
+	at net.neoforged.installertools.ConsoleTool.main(ConsoleTool.java:55)
+
+------------------------------------------------------------
+Total runtime: 9.09s
+
+net.neoforged.neoform.runtime.graph.NodeExecutionException: Node action for extractServer failed
+	at net.neoforged.neoform.runtime.engine.NeoFormEngine.runNode(NeoFormEngine.java:613)
+	at net.neoforged.neoform.runtime.engine.NeoFormEngine.lambda$getWaitCondition$5(NeoFormEngine.java:559)
+	at java.base/java.util.concurrent.CompletableFuture$AsyncRun.run(CompletableFuture.java:1804)
+	at java.base/java.util.concurrent.ThreadPerTaskExecutor$TaskRunner.run(ThreadPerTaskExecutor.java:314)
+	at java.base/java.lang.VirtualThread.run(VirtualThread.java:329)
+Caused by: java.lang.RuntimeException: Failed to execute tool
+	at net.neoforged.neoform.runtime.actions.ExternalJavaToolAction.run(ExternalJavaToolAction.java:202)
+	at net.neoforged.neoform.runtime.engine.NeoFormEngine.runNode(NeoFormEngine.java:602)
+	... 4 more
+
+> Task :createMinecraftArtifacts FAILED
+
+FAILURE: Build failed with an exception.
+
+* What went wrong:
+Execution failed for task ':createMinecraftArtifacts'.
+> Process 'command 'C:\Program Files\Java\jdk-21.0.12\bin\java.exe'' finished with non-zero exit value 1
+
+* Try:
+> Run with --stacktrace option to get the stack trace.
+> Run with --info or --debug option to get more log output.
+> Run with --scan to generate a Build Scan (powered by Develocity).
+> Get more help at https://help.gradle.org.
+
+BUILD FAILED in 32s
+1 actionable task: 1 executed

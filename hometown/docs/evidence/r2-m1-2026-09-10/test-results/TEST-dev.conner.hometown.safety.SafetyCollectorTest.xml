@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="dev.conner.hometown.safety.SafetyCollectorTest" tests="12" skipped="0" failures="0" errors="0" timestamp="2026-09-10T20:51:26.065Z" hostname="SGC-MAINFRAME" time="0.306">
+  <properties/>
+  <testcase name="S08_emptyAndUnknownRemainDistinct()" classname="dev.conner.hometown.safety.SafetyCollectorTest" time="0.056"/>
+  <testcase name="S12_blockLimitsAndDisabledHaveNoWorldEffects()" classname="dev.conner.hometown.safety.SafetyCollectorTest" time="0.002"/>
+  <testcase name="S07_invalidSampleHasNoAlternate()" classname="dev.conner.hometown.safety.SafetyCollectorTest" time="0.002"/>
+  <testcase name="S04_exclusionsAreIndependent()" classname="dev.conner.hometown.safety.SafetyCollectorTest" time="0.117"/>
+  <testcase name="S02_lifePlayerAndAllBounds()" classname="dev.conner.hometown.safety.SafetyCollectorTest" time="0.056"/>
+  <testcase name="S11_rawPrecisionAndMissingHousingScope()" classname="dev.conner.hometown.safety.SafetyCollectorTest" time="0.003"/>
+  <testcase name="S03_exactResourcesAndNoNeutralInference()" classname="dev.conner.hometown.safety.SafetyCollectorTest" time="0.018"/>
+  <testcase name="S09_S10_panelsStayIndependentAndHousingUnchanged()" classname="dev.conner.hometown.safety.SafetyCollectorTest" time="0.002"/>
+  <testcase name="S12_entityLimitsCountRejectionsAndRetainKnownFacts()" classname="dev.conner.hometown.safety.SafetyCollectorTest" time="0.006"/>
+  <testcase name="S01_countsAndDeduplicates()" classname="dev.conner.hometown.safety.SafetyCollectorTest" time="0.005"/>
+  <testcase name="S05_S06_onlyBlockLightAndThreshold()" classname="dev.conner.hometown.safety.SafetyCollectorTest" time="0.004"/>
+  <testcase name="Q05_sampleBoundaryAndCodecPreserveUnknown()" classname="dev.conner.hometown.safety.SafetyCollectorTest" time="0.033"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

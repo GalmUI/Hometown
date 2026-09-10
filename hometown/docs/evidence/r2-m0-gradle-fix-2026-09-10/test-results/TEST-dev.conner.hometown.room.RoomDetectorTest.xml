@@ -1,0 +1,26 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="dev.conner.hometown.room.RoomDetectorTest" tests="20" skipped="0" failures="0" errors="0" timestamp="2026-09-10T14:52:47.595Z" hostname="SGC-MAINFRAME" time="0.71">
+  <properties/>
+  <testcase name="slabAndStairRoofsSealAtBlockCellResolution()" classname="dev.conner.hometown.room.RoomDetectorTest" time="0.02"/>
+  <testcase name="freshSessionRediscoverChanges()" classname="dev.conner.hometown.room.RoomDetectorTest" time="0.008"/>
+  <testcase name="awningAndTreeDoNotEnclose()" classname="dev.conner.hometown.room.RoomDetectorTest" time="0.006"/>
+  <testcase name="largeOpenPlanInterior()" classname="dev.conner.hometown.room.RoomDetectorTest" time="0.11"/>
+  <testcase name="separateBedroomsWithOpenDoorStaySeparate()" classname="dev.conner.hometown.room.RoomDetectorTest" time="0.013"/>
+  <testcase name="openAndClosedTrapdoorRoofStable()" classname="dev.conner.hometown.room.RoomDetectorTest" time="0.029"/>
+  <testcase name="fourBedsShareOneRoom()" classname="dev.conner.hometown.room.RoomDetectorTest" time="0.025"/>
+  <testcase name="brokenWallEscapesOutside()" classname="dev.conner.hometown.room.RoomDetectorTest" time="0.005"/>
+  <testcase name="tagCanSealAnOtherwiseNonCollidingBlock()" classname="dev.conner.hometown.room.RoomDetectorTest" time="0.023"/>
+  <testcase name="glassRoofAndGlassOrPaneWalls()" classname="dev.conner.hometown.room.RoomDetectorTest" time="0.029"/>
+  <testcase name="openAndClosedDoorsKeepIdenticalResult()" classname="dev.conner.hometown.room.RoomDetectorTest" time="0.018"/>
+  <testcase name="distanceAndWorkBudgetsAreExplicit()" classname="dev.conner.hometown.room.RoomDetectorTest" time="0.004"/>
+  <testcase name="missingRoofEscapesOutside()" classname="dev.conner.hometown.room.RoomDetectorTest" time="0.001"/>
+  <testcase name="twoBedsReuseCompleteRoomWithoutWorldReads()" classname="dev.conner.hometown.room.RoomDetectorTest" time="0.018"/>
+  <testcase name="oversizedHallStopsAtVolumeLimit()" classname="dev.conner.hometown.room.RoomDetectorTest" time="0.345"/>
+  <testcase name="enclosedCarvedCave()" classname="dev.conner.hometown.room.RoomDetectorTest" time="0.008"/>
+  <testcase name="missingChunkFailsWithoutRequestingLoad()" classname="dev.conner.hometown.room.RoomDetectorTest" time="0.034"/>
+  <testcase name="infiniteRoofedTunnelFailsEvenWithoutSkyVisibility()" classname="dev.conner.hometown.room.RoomDetectorTest" time="0.002"/>
+  <testcase name="invalidBedAndNoFreeStart()" classname="dev.conner.hometown.room.RoomDetectorTest" time="0.002"/>
+  <testcase name="vanillaHouseAndBothBedHalves()" classname="dev.conner.hometown.room.RoomDetectorTest" time="0.009"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

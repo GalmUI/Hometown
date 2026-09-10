@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="dev.conner.hometown.settlement.SettlementPersistenceTest" tests="4" skipped="0" failures="0" errors="0" timestamp="2026-09-10T20:51:26.781Z" hostname="SGC-MAINFRAME" time="0.126">
+  <properties/>
+  <testcase name="radiusAndDimensionQueriesUseStoredValuesAndHorizontalDistance()" classname="dev.conner.hometown.settlement.SettlementPersistenceTest" time="0.018"/>
+  <testcase name="malformedRecordsFailVisibly()" classname="dev.conner.hometown.settlement.SettlementPersistenceTest" time="0.027"/>
+  <testcase name="rejectsDuplicateNamesBellsAndIdsWithoutPartialWrites()" classname="dev.conner.hometown.settlement.SettlementPersistenceTest" time="0.01"/>
+  <testcase name="persistsAllFieldsAcrossTwoDiskReloadsAndWorldCopy()" classname="dev.conner.hometown.settlement.SettlementPersistenceTest" time="0.07"/>
+  <system-out><![CDATA[[15:51:26] [Test worker/INFO] [de.co.ho.Hometown/]: Removed Hometown 'Oakridge' [1512e61e-3628-4411-ace0-0df030fb5f14]
+[15:51:26] [Test worker/INFO] [de.co.ho.Hometown/]: Loaded 0 Hometowns from SavedData
+[15:51:26] [Test worker/INFO] [de.co.ho.Hometown/]: Loaded 2 Hometowns from SavedData
+[15:51:26] [Test worker/INFO] [de.co.ho.Hometown/]: Loaded 2 Hometowns from SavedData
+[15:51:26] [Test worker/INFO] [de.co.ho.Hometown/]: Loaded 2 Hometowns from SavedData
+]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>
