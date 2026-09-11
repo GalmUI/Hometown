@@ -71,7 +71,7 @@ class ComfortCollectorTest {
         var a=room(new BlockPos(0,64,0),Set.of(new BlockPos(0,64,0)),Set.of(new BlockPos(0,64,0)),Set.of(shared),true);
         var b=room(new BlockPos(1,64,1),Set.of(new BlockPos(1,64,1)),Set.of(new BlockPos(1,64,1)),Set.of(shared),true);
         w.put(shared,w.tagged(Blocks.CHEST,ComfortCategory.STORAGE));
-        w.put(leak,w.tagged(Blocks.BOOKSHELF,ComfortCategory.BOOKS)); // behind boundary, not proven geometry
+        w.put(leak,w.tagged(Blocks.BOOKSHELF,ComfortCategory.BOOKS));
         var s=collect(w,housing(List.of(a,b),true),settings(10,20),20);
         assertEquals(Status.COMPLETE,s.scanStatus());assertEquals(2,s.assessedRooms());
         assertEquals(2,s.categoryCoverage().get(ComfortCategory.STORAGE));
@@ -92,7 +92,7 @@ class ComfortCollectorTest {
     }
 
     @Test void Q03_perRoomAndSharedLimitsRetainKnownFactsAndDistinguishNoWork(){
-        var w=new World();var first=new BlockPos(0,64,0),second=new BlockPos(1,64,0);
+        var w=new World();var first=new BlockPos(0,64,0);var second=new BlockPos(1,64,0);
         w.put(first,w.tagged(Blocks.CHEST,ComfortCategory.STORAGE));w.put(second,Blocks.AIR.defaultBlockState());
         var r=room(first,Set.of(first),Set.of(first,second),Set.of(),true);
         var partial=collect(w,housing(List.of(r),true),settings(10,1),20);
@@ -109,7 +109,7 @@ class ComfortCollectorTest {
     }
 
     @Test void Q05_outOfBoundsBoundaryIsPartialAndCannotContribute(){
-        var w=new World();var inside=new BlockPos(0,64,0),outside=new BlockPos(9,64,0);
+        var w=new World();var inside=new BlockPos(0,64,0);var outside=new BlockPos(9,64,0);
         w.put(outside,w.tagged(Blocks.CHEST,ComfortCategory.STORAGE));
         var r=room(inside,Set.of(inside),Set.of(inside),Set.of(outside),true);
         var s=collect(w,housing(List.of(r),true),settings(10,20),20);
