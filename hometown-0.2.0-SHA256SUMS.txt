@@ -1,2 +1,0 @@
-11f79015260a167c1182d00f1ffe6091ce1ecdc6a3bc7da421def509dacdc8f2  hometown-0.2.0-ledger.jar
-228faca0330f6dcb822cbc8394a7dc595b355701f077ac623adc9de251621980  hometown-0.2.0-source.zip

@@ -1,2 +1,0 @@
-6cbf9e92adf247536fba536f07255864ce099507c403dfbd6b59b6bf2ca91551  hometown-0.3a-room-prototype.jar
-0304da8dab7225b07a94591305d1e04421466464b49310f0c3a6db15af8a9bc2  hometown-0.3a-source.zip

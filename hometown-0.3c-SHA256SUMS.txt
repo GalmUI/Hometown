@@ -1,2 +1,0 @@
-ab3b705f9d751ff261c853538ccc7c3a3e341c07f9ff83853281984f1d9ff981  hometown-0.3c-privacy.jar
-16da4c4dadb6fa94ae18fe2243e45125c23311d7c810037d4cd51e459f0ddad7  hometown-0.3c-source.zip
