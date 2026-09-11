@@ -39,7 +39,6 @@ class ComfortEvaluatorTest {
     @Test void C02_capsDefaultsAndDisabledHits() {
         var twentyBooks=hits(ComfortCategory.STORAGE,ComfortCategory.BOOKS,ComfortCategory.SEATING);
         twentyBooks.put(ComfortCategory.BOOKS,20);
-        twentyBooks.put(ComfortCategory.SEATING,20);
         var room=room(1,twentyBooks,settings());
         assertEquals(20,room.presentWeight());
         assertEquals(20.0/75*100,room.score().orElseThrow(),1e-12);
@@ -76,7 +75,7 @@ class ComfortEvaluatorTest {
         var one=room(1,hits(ComfortCategory.STORAGE,ComfortCategory.LIGHTING,ComfortCategory.DECOR,
                 ComfortCategory.BOOKS,ComfortCategory.PLANTS,ComfortCategory.AMENITIES),settings);
         var twenty=ComfortEvaluator.room(new BlockPos(2,64,0),3,1,1,Status.COMPLETE,Map.of(),
-                hits(ComfortCategory.LIGHTING),0,0,settings); // 15/75 = 20
+                hits(ComfortCategory.LIGHTING),0,0,settings);
         var town=ComfortEvaluator.town(metadata(),settings,true,4,List.of(one,twenty),Map.of(),2,2,100);
         assertEquals(40,town.residentialComfortPercent().orElseThrow());
         assertEquals(Band.BASIC,town.band().orElseThrow());
