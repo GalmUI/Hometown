@@ -3,7 +3,7 @@ loaderVersion="[4,)"
 license="All Rights Reserved"
 [[mods]]
 modId="hometown"
-version="0.4.0-alpha.2"
+version="${mod_version}"
 displayName="Hometown"
 description='''Choose a village. Found a hometown. Keep its story.'''
 [[dependencies.hometown]]

@@ -6,7 +6,7 @@ The mod turns vanilla villages into named settlements centered on a Bell and a T
 
 ## Current development state
 
-- Version: `0.4.0-alpha.2`
+- Version: `0.5.0-alpha.1`
 - Platform: Minecraft 1.21.1 / NeoForge 21.1.250
 - Java toolchain: Java 21
 - Gradle wrapper: included in the repository
@@ -62,7 +62,13 @@ Useful development runs:
 .\gradlew.bat runServer
 ```
 
-A successful build writes the mod artifact under `build/libs/`.
+A successful build writes the mod artifact under `build/libs/` as `hometown-<version>.jar`.
+
+### Playtest artifact versioning
+
+`mod_version` in `gradle.properties` is the single source of truth for both the built JAR filename and Hometown's NeoForge mod metadata.
+
+Every intentional playtest build containing changed code or data must receive a new, never-reused version before it is handed off for testing. Iterations within the same development target increment the prerelease number (for example, `0.5.0-alpha.1` → `0.5.0-alpha.2`). This prevents two materially different playtest JARs from carrying the same identifier.
 
 ## Development workflow
 

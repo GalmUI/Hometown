@@ -3,7 +3,7 @@ plugins {
     id 'net.neoforged.moddev' version '2.0.146'
 }
 group = 'dev.conner.hometown'
-version = '0.4.0-alpha.2'
+version = mod_version
 base { archivesName = 'hometown' }
 java.toolchain.languageVersion = JavaLanguageVersion.of(21)
 java.withSourcesJar()
@@ -26,6 +26,12 @@ dependencies {
     testImplementation 'org.junit.jupiter:junit-jupiter'
     testImplementation 'org.mockito:mockito-core:5.15.2'
     testRuntimeOnly 'org.junit.platform:junit-platform-launcher'
+}
+tasks.named('processResources') {
+    inputs.property 'mod_version', mod_version
+    filesMatching('META-INF/neoforge.mods.toml') {
+        expand mod_version: mod_version
+    }
 }
 tasks.named('test', Test) { useJUnitPlatform() }
 tasks.withType(JavaCompile).configureEach { options.encoding = 'UTF-8' }
