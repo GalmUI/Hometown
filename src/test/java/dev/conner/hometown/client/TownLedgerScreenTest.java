@@ -42,8 +42,6 @@ class TownLedgerScreenTest {
         var screen = mock(TownLedgerScreen.class, withSettings()
                 .spiedInstance(new TownLedgerScreen(InteractionHand.MAIN_HAND))
                 .defaultAnswer(call -> {
-                    // Keep the real Screen.render -> renderBackground dispatch. Stub only
-                    // the world/panorama GPU passes, so duplicate blur calls are observable.
                     if (List.of("renderBlurredBackground", "renderMenuBackground", "renderPanorama")
                             .contains(call.getMethod().getName())) return null;
                     return Answers.CALLS_REAL_METHODS.answer(call);
@@ -72,7 +70,7 @@ class TownLedgerScreenTest {
                 .withFood(dev.conner.hometown.food.FoodRules.DEFAULT.snapshot(10,4,17,8,1060));
     }
 
-private dev.conner.hometown.safety.SafetySnapshot safetyFixture(TownLedgerSnapshot base,int mode) {
+    private dev.conner.hometown.safety.SafetySnapshot safetyFixture(TownLedgerSnapshot base,int mode) {
         var complete=dev.conner.hometown.safety.SafetySnapshot.Status.COMPLETE;
         var partial=dev.conner.hometown.safety.SafetySnapshot.Status.PARTIAL;
         var unavailable=dev.conner.hometown.safety.SafetySnapshot.Status.UNAVAILABLE;
@@ -146,7 +144,7 @@ private dev.conner.hometown.safety.SafetySnapshot safetyFixture(TownLedgerSnapsh
             assertTrue(x >= left && x + pixels <= right && y >= top && y + lines * 9 <= bottom,
                     "Page text escaped the ledger: " + line);
         }
-        verify(graphics, never()).pose(); // No custom transform or font scaling.
+        verify(graphics, never()).pose();
         return text;
     }
 
@@ -163,8 +161,6 @@ private dev.conner.hometown.safety.SafetySnapshot safetyFixture(TownLedgerSnapsh
             var requests = new ArrayList<RequestTownLedgerPayload>();
             packets.when(() -> PacketDistributor.sendToServer(any(CustomPacketPayload.class)))
                     .thenAnswer(call -> { requests.add(call.getArgument(0)); return null; });
-            // 1920x1080 at GUI scales 2, 3, 4, plus the user's 1918x976 viewport
-            // (ceiling division as used by Window), and Minecraft's minimum GUI size.
             for (int[] size : List.of(new int[]{960, 540}, new int[]{640, 360}, new int[]{480, 270},
                     new int[]{959, 488}, new int[]{640, 326}, new int[]{480, 244}, new int[]{320, 240})) {
                 var screen = screen(size[0], size[1]);
@@ -192,9 +188,16 @@ private dev.conner.hometown.safety.SafetySnapshot safetyFixture(TownLedgerSnapsh
                     button.onPress();
                     assertEquals(section, subsectionField.get(screen));
                     var subsection = draw(screen);
-                    if (section != DevelopmentSection.HOUSING && section != DevelopmentSection.FOOD && section != DevelopmentSection.SAFETY) {
+                    if (section != DevelopmentSection.HOUSING && section != DevelopmentSection.FOOD
+                            && section != DevelopmentSection.SAFETY && section != DevelopmentSection.COMFORT) {
                         assertTrue(subsection.contains("This aspect of town development is not yet tracked."));
                         assertFalse(subsection.stream().anyMatch(t -> t.startsWith("Capacity:") || t.startsWith("Privacy:")));
+                    }
+                    if (section == DevelopmentSection.COMFORT) {
+                        assertTrue(subsection.contains("Comfort"));
+                        assertTrue(subsection.contains("N/A"));
+                        assertTrue(subsection.contains("Comfort Categories"));
+                        assertFalse(subsection.contains("This aspect of town development is not yet tracked."));
                     }
                     if (section == DevelopmentSection.FOOD) {
                         assertTrue(subsection.contains("Food Security"));assertTrue(subsection.contains("Town Stores"));
@@ -252,7 +255,6 @@ private dev.conner.hometown.safety.SafetySnapshot safetyFixture(TownLedgerSnapsh
                         }
                         field.set(screen,snapshot());
                     }
-                    // Exactly the selected subcategory gets its underline at the secondary row.
                     var g = mock(GuiGraphics.class); screen.render(g,0,0,0);
                     long highlights = mockingDetails(g).getInvocations().stream().filter(call -> call.getMethod().getName().equals("fill")
                             && (int)call.getArgument(4) == 0xFF99513B && (int)call.getArgument(1) == button.getY()+button.getHeight()-4).count();
