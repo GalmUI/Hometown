@@ -21,11 +21,13 @@ public final class TownLedgerScreen extends Screen {
     private TownLedgerSnapshotPayload.Error error = TownLedgerSnapshotPayload.Error.NONE;
     private int requestId, requestedPage, activeTab, left, top, bookWidth, bookHeight, waitTicks;
     private boolean waiting;
-    private Button previous, next, retry;
+    private Button previous, next, retry, comfortDetails, comfortBack;
     private DevelopmentSection activeDevelopment = DevelopmentSection.HOUSING;
     private final java.util.List<Button> developmentButtons = new java.util.ArrayList<>();
     private Component hoveredText;
     private int safetyPage;
+    private int comfortRoomPage;
+    private boolean comfortRoomDetails;
 
     public TownLedgerScreen(InteractionHand hand) {
         super(Component.translatable("item.hometown.town_ledger"));
@@ -46,9 +48,9 @@ public final class TownLedgerScreen extends Screen {
                     Component.translatable("hometown.ledger.tab." + tabs[i]), button -> { activeTab = tab; updateButtons(); }, tab));
         }
         previous = addRenderableWidget(new Bookmark(left + 18, top + bookHeight - 25, 36, 17,
-                Component.literal("←"), button -> { if (activeTab==2) { safetyPage--; updateButtons(); } else requestPage(snapshot.residentPage() - 1); }, -1));
+                Component.literal("←"), button -> previousPage(), -1));
         next = addRenderableWidget(new Bookmark(left + bookWidth - 54, top + bookHeight - 25, 36, 17,
-                Component.literal("→"), button -> { if (activeTab==2) { safetyPage++; updateButtons(); } else requestPage(snapshot.residentPage() + 1); }, -1));
+                Component.literal("→"), button -> nextPage(), -1));
         retry = addRenderableWidget(new Bookmark(left + bookWidth / 2 - 42, top + bookHeight - 25, 84, 17,
                 Component.translatable("hometown.ledger.retry"), button -> requestPage(requestedPage), -1));
         developmentButtons.clear();
@@ -56,11 +58,41 @@ public final class TownLedgerScreen extends Screen {
         for (var section : DevelopmentSection.values()) {
             Component label = Component.translatable(section.translationKey());
             var bookmark = new Bookmark(left + 12 + section.ordinal() * subsectionWidth, top + 33,
-                    subsectionWidth - 2, 16, label, button -> { activeDevelopment = section; updateButtons(); },
-                    () -> activeDevelopment == section);
+                    subsectionWidth - 2, 16, label, button -> {
+                        activeDevelopment = section;
+                        if (section != DevelopmentSection.SAFETY) safetyPage = 0;
+                        if (section != DevelopmentSection.COMFORT) { comfortRoomDetails = false; comfortRoomPage = 0; }
+                        updateButtons();
+                    }, () -> activeDevelopment == section);
             bookmark.setTooltip(net.minecraft.client.gui.components.Tooltip.create(label));
             developmentButtons.add(addRenderableWidget(bookmark));
         }
+        comfortDetails = addRenderableWidget(new Bookmark(left + bookWidth / 2 + 18, top + bookHeight - 43, 86, 15,
+                Component.translatable("hometown.comfort.room_details"), button -> {
+                    comfortRoomDetails = true;
+                    comfortRoomPage = 0;
+                    updateButtons();
+                }, -1));
+        comfortBack = addRenderableWidget(new Bookmark(left + bookWidth / 2 + 18, top + bookHeight - 43, 54, 15,
+                Component.translatable("hometown.comfort.back"), button -> {
+                    comfortRoomDetails = false;
+                    comfortRoomPage = 0;
+                    updateButtons();
+                }, -1));
+        updateButtons();
+    }
+
+    private void previousPage() {
+        if (activeTab != 2) { requestPage(snapshot.residentPage() - 1); return; }
+        if (activeDevelopment == DevelopmentSection.SAFETY) safetyPage--;
+        else if (activeDevelopment == DevelopmentSection.COMFORT && comfortRoomDetails) comfortRoomPage--;
+        updateButtons();
+    }
+
+    private void nextPage() {
+        if (activeTab != 2) { requestPage(snapshot.residentPage() + 1); return; }
+        if (activeDevelopment == DevelopmentSection.SAFETY) safetyPage++;
+        else if (activeDevelopment == DevelopmentSection.COMFORT && comfortRoomDetails) comfortRoomPage++;
         updateButtons();
     }
 
@@ -80,7 +112,10 @@ public final class TownLedgerScreen extends Screen {
         waiting = false;
         error = payload.error();
         if (payload.snapshot() != null) snapshot = payload.snapshot();
-        if (snapshot != null) safetyPage=Math.min(safetyPage,safetyPages()-1);
+        if (snapshot != null) {
+            safetyPage = Math.min(safetyPage, safetyPages() - 1);
+            comfortRoomPage = Math.min(comfortRoomPage, Math.max(0, snapshot.comfort().roomRecords().size() - 1));
+        }
         // Do not keep showing another town's data after an invalid/switched held item.
         if (error != TownLedgerSnapshotPayload.Error.NONE) snapshot = null;
         updateButtons();
@@ -98,12 +133,20 @@ public final class TownLedgerScreen extends Screen {
     private void updateButtons() {
         if (previous == null) return;
         boolean paging = activeTab == 1 && snapshot != null && snapshot.residentPages() > 1;
-        boolean safetyPaging = activeTab==2 && activeDevelopment==DevelopmentSection.SAFETY && snapshot!=null && safetyPages()>1;
-        previous.visible = next.visible = paging || safetyPaging;
-        previous.active = !waiting && ((paging && snapshot.residentPage()>0) || (safetyPaging && safetyPage>0));
-        next.active = !waiting && ((paging && snapshot.residentPage()+1<snapshot.residentPages()) || (safetyPaging && safetyPage+1<safetyPages()));
+        boolean safetyPaging = activeTab == 2 && activeDevelopment == DevelopmentSection.SAFETY && snapshot != null && safetyPages() > 1;
+        boolean comfortPaging = activeTab == 2 && activeDevelopment == DevelopmentSection.COMFORT && comfortRoomDetails
+                && snapshot != null && snapshot.comfort().roomRecords().size() > 1;
+        previous.visible = next.visible = paging || safetyPaging || comfortPaging;
+        previous.active = !waiting && ((paging && snapshot.residentPage() > 0)
+                || (safetyPaging && safetyPage > 0) || (comfortPaging && comfortRoomPage > 0));
+        next.active = !waiting && ((paging && snapshot.residentPage() + 1 < snapshot.residentPages())
+                || (safetyPaging && safetyPage + 1 < safetyPages())
+                || (comfortPaging && comfortRoomPage + 1 < snapshot.comfort().roomRecords().size()));
         retry.visible = !waiting && error != TownLedgerSnapshotPayload.Error.NONE;
         developmentButtons.forEach(button -> button.visible = activeTab == 2 && snapshot != null);
+        boolean comfort = activeTab == 2 && activeDevelopment == DevelopmentSection.COMFORT && snapshot != null;
+        comfortDetails.visible = comfort && !comfortRoomDetails && !snapshot.comfort().roomRecords().isEmpty();
+        comfortBack.visible = comfort && comfortRoomDetails;
     }
 
     @Override public boolean isPauseScreen() { return false; }
@@ -207,6 +250,7 @@ public final class TownLedgerScreen extends Screen {
     private void development(GuiGraphics g, int column, int mx, int my) {
         if (activeDevelopment == DevelopmentSection.FOOD) { food(g,column,mx,my); return; }
         if (activeDevelopment == DevelopmentSection.SAFETY) { safety(g,column,mx,my); return; }
+        if (activeDevelopment == DevelopmentSection.COMFORT) { comfort(g,column,mx,my); return; }
         if (activeDevelopment != DevelopmentSection.HOUSING) {
             line(g, Component.translatable(activeDevelopment.translationKey()), left + 18, top + 60, column, INK, mx, my);
             g.drawWordWrap(font, Component.translatable("hometown.development.placeholder"), left + 18, top + 82, column, MUTED);
@@ -281,6 +325,81 @@ public final class TownLedgerScreen extends Screen {
                 .append(" ("+e.getValue()+")"),x,y+(i-start)*20,column,WARNING,mx,my);
         }
     }
+
+    private void comfort(GuiGraphics g,int column,int mx,int my) {
+        var c=snapshot.comfort();
+        int x=left+18,right=left+bookWidth/2+18,y=top+58;
+        line(g,Component.translatable("hometown.comfort.title"),x,y,column,INK,mx,my);
+        java.util.OptionalDouble shown=c.residentialComfortPercent().isPresent()?c.residentialComfortPercent():c.observedRoomComfortPercent();
+        String scoreKey=c.residentialComfortPercent().isPresent()?"hometown.comfort.residential":"hometown.comfort.observed";
+        line(g,Component.translatable(scoreKey),x,y+14,column,INK,mx,my);
+        line(g,shown.isPresent()?Component.translatable("hometown.comfort.percent",roundPercent(shown.getAsDouble())):Component.literal("N/A"),
+                x,y+28,column,c.scanStatus()==dev.conner.hometown.comfort.ComfortSnapshot.Status.COMPLETE?INK:WARNING,mx,my);
+        if(c.residentialComfortPercent().isPresent()&&c.band().isPresent())
+            line(g,Component.translatable("hometown.comfort.band."+c.band().get().name().toLowerCase(java.util.Locale.ROOT)),x,y+42,column,INK,mx,my);
+        else if(c.condition()!=dev.conner.hometown.comfort.ComfortSnapshot.Condition.OBSERVED)
+            line(g,Component.translatable("hometown.comfort.condition."+c.condition().name().toLowerCase(java.util.Locale.ROOT)),x,y+42,column,MUTED,mx,my);
+        if(shown.isPresent()) {
+            g.fill(x,y+55,x+column,y+60,0xFFBCA27D);
+            int filled=(int)Math.round(column*Math.clamp(shown.getAsDouble(),0,100)/100.0);
+            if(filled>0)g.fill(x,y+55,x+filled,y+60,0xFF817644);
+        }
+        Object beds=c.expectedEnclosedBeds().isPresent()?c.expectedEnclosedBeds().getAsInt():c.assessedEnclosedBeds();
+        line(g,Component.translatable(c.expectedEnclosedBeds().isPresent()?"hometown.comfort.enclosed_beds":"hometown.comfort.known_enclosed_beds",beds),x,y+72,column,INK,mx,my);
+        Component rooms=c.expectedRooms().isPresent()?Component.translatable("hometown.comfort.rooms_assessed",c.assessedRooms(),c.expectedRooms().getAsInt())
+                :Component.translatable("hometown.comfort.rooms_assessed_unknown",c.assessedRooms());
+        line(g,rooms,x,y+86,column,INK,mx,my);
+        if(!c.reasonCounts().isEmpty()) {
+            var reason=new java.util.TreeMap<>(c.reasonCounts()).firstKey();
+            line(g,Component.translatable("hometown.comfort.reason."+reason.name().toLowerCase(java.util.Locale.ROOT)),x,y+102,column,WARNING,mx,my);
+        }
+
+        if(comfortRoomDetails) comfortRoom(g,c,right,y,column,mx,my);
+        else comfortCategories(g,c,right,y,column,mx,my);
+    }
+
+    private void comfortCategories(GuiGraphics g,dev.conner.hometown.comfort.ComfortSnapshot c,int x,int y,int column,int mx,int my) {
+        line(g,Component.translatable("hometown.comfort.categories"),x,y,column,INK,mx,my);
+        int row=0;
+        for(var category:dev.conner.hometown.comfort.ComfortCategory.values()) {
+            var setting=c.categories().get(category);
+            if(setting==null||!setting.enabled())continue;
+            line(g,Component.translatable("hometown.comfort.category."+category.id(),c.categoryCoverage().getOrDefault(category,0),c.assessedRooms()),
+                    x,y+15+row*12,column,INK,mx,my);
+            row++;
+        }
+        if(c.enabledWeight()==0)line(g,Component.translatable("hometown.comfort.no_enabled_weight"),x,y+15,column,MUTED,mx,my);
+    }
+
+    private void comfortRoom(GuiGraphics g,dev.conner.hometown.comfort.ComfortSnapshot c,int x,int y,int column,int mx,int my) {
+        if(c.roomRecords().isEmpty()) {
+            line(g,Component.translatable("hometown.comfort.no_rooms"),x,y,column,MUTED,mx,my);
+            return;
+        }
+        int page=Math.clamp(comfortRoomPage,0,c.roomRecords().size()-1);
+        var room=c.roomRecords().get(page);
+        line(g,Component.translatable("hometown.comfort.room",page+1,c.roomRecords().size()),x,y,column,INK,mx,my);
+        line(g,Component.translatable("hometown.comfort.room_beds",room.enclosedBeds()),x,y+13,column,INK,mx,my);
+        line(g,room.score().isPresent()?Component.translatable("hometown.comfort.room_score",roundPercent(room.score().getAsDouble()))
+                :Component.translatable("hometown.comfort.room_score_na"),x,y+26,column,INK,mx,my);
+        if(room.band().isPresent())line(g,Component.translatable("hometown.comfort.band."+room.band().get().name().toLowerCase(java.util.Locale.ROOT)),x,y+39,column,MUTED,mx,my);
+        int row=0;
+        for(var category:dev.conner.hometown.comfort.ComfortCategory.values()) {
+            var setting=c.categories().get(category);
+            if(setting==null||!setting.enabled())continue;
+            var presence=room.categoryPresence().get(category);
+            line(g,Component.translatable("hometown.comfort.room_category",Component.translatable("hometown.comfort.category_name."+category.id()),
+                    Component.translatable("hometown.comfort.presence."+presence.name().toLowerCase(java.util.Locale.ROOT))),
+                    x,y+53+row*10,column,presence==dev.conner.hometown.comfort.ComfortSnapshot.Presence.UNKNOWN?WARNING:INK,mx,my);
+            row++;
+        }
+        if(!room.reasonCounts().isEmpty()) {
+            var reason=new java.util.TreeMap<>(room.reasonCounts()).firstKey();
+            line(g,Component.translatable("hometown.comfort.reason."+reason.name().toLowerCase(java.util.Locale.ROOT)),x,y+57+row*10,column,WARNING,mx,my);
+        }
+    }
+
+    private static int roundPercent(double value) { return (int)Math.floor(value+0.5d); }
 
     private void food(GuiGraphics g, int column, int mx, int my) {
         int x=left+18, right=left+bookWidth/2+18, y=top+58;
