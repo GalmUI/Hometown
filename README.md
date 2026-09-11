@@ -6,7 +6,7 @@ The mod turns vanilla villages into named settlements centered on a Bell and a T
 
 ## Current development state
 
-- Version: `0.5.0-alpha.1`
+- Version: `0.5.0-alpha.2`
 - Platform: Minecraft 1.21.1 / NeoForge 21.1.250
 - Java toolchain: Java 21
 - Gradle wrapper: included in the repository

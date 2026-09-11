@@ -54,18 +54,36 @@ public final class TownLedgerScreen extends Screen {
         retry = addRenderableWidget(new Bookmark(left + bookWidth / 2 - 42, top + bookHeight - 25, 84, 17,
                 Component.translatable("hometown.ledger.retry"), button -> requestPage(requestedPage), -1));
         developmentButtons.clear();
-        int subsectionWidth = (bookWidth - 24) / DevelopmentSection.values().length;
-        for (var section : DevelopmentSection.values()) {
+        var sections = DevelopmentSection.values();
+        var labels = new java.util.ArrayList<Component>(sections.length);
+        int availableWidth = bookWidth - 24;
+        int gap = 2;
+        int naturalWidth = 0;
+        for (var section : sections) {
             Component label = Component.translatable(section.translationKey());
-            var bookmark = new Bookmark(left + 12 + section.ordinal() * subsectionWidth, top + 33,
-                    subsectionWidth - 2, 16, label, button -> {
+            labels.add(label);
+            naturalWidth += font.width(label.getString()) + 2;
+        }
+        int gapWidth = gap * Math.max(0, sections.length - 1);
+        boolean labelsFit = naturalWidth + gapWidth <= availableWidth;
+        int extraWidth = labelsFit ? availableWidth - gapWidth - naturalWidth : 0;
+        int subsectionX = left + 12;
+        for (int i = 0; i < sections.length; i++) {
+            var section = sections[i];
+            Component label = labels.get(i);
+            int buttonWidth = labelsFit
+                    ? font.width(label.getString()) + 2 + extraWidth / sections.length + (i < extraWidth % sections.length ? 1 : 0)
+                    : Math.max(1, (availableWidth - gapWidth) / sections.length);
+            var bookmark = new Bookmark(subsectionX, top + 33, buttonWidth, 16, label, button -> {
                         activeDevelopment = section;
                         if (section != DevelopmentSection.SAFETY) safetyPage = 0;
                         if (section != DevelopmentSection.COMFORT) { comfortRoomDetails = false; comfortRoomPage = 0; }
                         updateButtons();
                     }, () -> activeDevelopment == section);
-            bookmark.setTooltip(net.minecraft.client.gui.components.Tooltip.create(label));
+            if (font.width(label.getString()) > buttonWidth - 2)
+                bookmark.setTooltip(net.minecraft.client.gui.components.Tooltip.create(label));
             developmentButtons.add(addRenderableWidget(bookmark));
+            subsectionX += buttonWidth + gap;
         }
         comfortDetails = addRenderableWidget(new Bookmark(left + bookWidth / 2 + 18, top + bookHeight - 43, 86, 15,
                 Component.translatable("hometown.comfort.room_details"), button -> {
@@ -73,7 +91,7 @@ public final class TownLedgerScreen extends Screen {
                     comfortRoomPage = 0;
                     updateButtons();
                 }, -1));
-        comfortBack = addRenderableWidget(new Bookmark(left + bookWidth / 2 + 18, top + bookHeight - 43, 54, 15,
+        comfortBack = addRenderableWidget(new Bookmark(left + bookWidth - 72, top + 58, 54, 15,
                 Component.translatable("hometown.comfort.back"), button -> {
                     comfortRoomDetails = false;
                     comfortRoomPage = 0;
@@ -282,15 +300,22 @@ public final class TownLedgerScreen extends Screen {
             case COMPLETE -> s.threatsObserved()==0?"zero":"present";
         };
         line(g,Component.translatable("hometown.safety."+condition),x,y+27,column,MUTED,mx,my);
+        int entityY=y+43;
         if(s.entityScanStatus()!=dev.conner.hometown.safety.SafetySnapshot.Status.UNAVAILABLE && s.enabled()) {
-            line(g,Component.translatable("hometown.safety.threats",s.threatsObserved()),x,y+43,column,INK,mx,my);
-            line(g,Component.translatable("hometown.safety.protectors",s.protectorsObserved()),x,y+57,column,INK,mx,my);
-        }
-        line(g,Component.translatable("hometown.safety.observed"),x,y+75,column,MUTED,mx,my);
+            line(g,Component.translatable("hometown.safety.threats",s.threatsObserved()),x,entityY,column,INK,mx,my);
+            entityY+=14;
+            if(!s.countsByThreatType().isEmpty()) {
+                line(g,safetyThreatTypes(s.countsByThreatType()),x,entityY,column,MUTED,mx,my);
+                entityY+=14;
+            }
+            line(g,Component.translatable("hometown.safety.protectors",s.protectorsObserved()),x,entityY,column,INK,mx,my);
+            entityY+=18;
+        } else entityY=y+75;
+        line(g,Component.translatable("hometown.safety.observed"),x,entityY,column,MUTED,mx,my);
         if(!s.entityReasonCounts().isEmpty()) {
             var reason=new java.util.TreeMap<>(s.entityReasonCounts()).firstKey();
             line(g,Component.translatable("hometown.safety.reason."+reason.name().toLowerCase(java.util.Locale.ROOT)),
-                x,y+90,column,WARNING,mx,my);
+                x,entityY+15,column,WARNING,mx,my);
         }
         var percent=s.residentialLightingPercent().isPresent()?s.residentialLightingPercent():s.observedLightingPercent();
         String percentKey=s.residentialLightingPercent().isPresent()?"percent":"observed_percent";
@@ -324,6 +349,29 @@ public final class TownLedgerScreen extends Screen {
             line(g,Component.translatable("hometown.safety.reason."+e.getKey().name().toLowerCase(java.util.Locale.ROOT))
                 .append(" ("+e.getValue()+")"),x,y+(i-start)*20,column,WARNING,mx,my);
         }
+    }
+    private Component safetyThreatTypes(java.util.Map<String,Integer> counts) {
+        var entries=new java.util.ArrayList<>(counts.entrySet());
+        entries.sort(java.util.Comparator.<java.util.Map.Entry<String,Integer>>comparingInt(java.util.Map.Entry::getValue)
+                .reversed().thenComparing(java.util.Map.Entry::getKey));
+        var text=new StringBuilder();
+        for(var entry:entries) {
+            if(!text.isEmpty())text.append(", ");
+            text.append(entityTypeLabel(entry.getKey())).append(" ×").append(entry.getValue());
+        }
+        return Component.literal(text.toString());
+    }
+    private static String entityTypeLabel(String id) {
+        int colon=id.indexOf(':');
+        String path=colon>=0?id.substring(colon+1):id;
+        var words=path.replace('_',' ').split(" ");
+        var text=new StringBuilder();
+        for(String word:words) {
+            if(word.isEmpty())continue;
+            if(!text.isEmpty())text.append(' ');
+            text.append(Character.toUpperCase(word.charAt(0))).append(word.substring(1));
+        }
+        return text.isEmpty()?id:text.toString();
     }
 
     private void comfort(GuiGraphics g,int column,int mx,int my) {
@@ -527,7 +575,7 @@ public final class TownLedgerScreen extends Screen {
             g.fill(getX() + 1, getY() + 1, getX() + getWidth() - 1, getY() + getHeight() - 1,
                     selected ? 0xFFF6E9CB : 0xFFD8BF93);
             if (selected) g.fill(getX() + 5, getY() + getHeight() - 4, getX() + getWidth() - 5, getY() + getHeight() - 3, 0xFF99513B);
-            String label = font.plainSubstrByWidth(getMessage().getString(), getWidth() - 6);
+            String label = font.plainSubstrByWidth(getMessage().getString(), Math.max(0, getWidth() - 2));
             g.drawString(font, label, getX() + (getWidth() - font.width(label)) / 2, getY() + (getHeight() - 8) / 2,
                     active ? INK : MUTED, false);
         }
