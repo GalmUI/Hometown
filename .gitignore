@@ -1,6 +1,37 @@
+# Gradle
 .gradle/
 build/
+
+# NeoForge development runs
 run/
 runs/
+
+# IntelliJ IDEA
 .idea/
 *.iml
+out/
+
+# VS Code / Eclipse
+.vscode/
+.classpath
+.project
+.settings/
+
+# OS/editor noise
+.DS_Store
+Thumbs.db
+*.swp
+*.tmp
+
+# Logs/crash output
+*.log
+hs_err_pid*
+replay_pid*
+
+# Local environment files
+.env
+.env.*
+
+# Do not commit generated distributable archives beside source
+*.jar
+*.zip
