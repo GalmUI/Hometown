@@ -22,13 +22,20 @@ public record ComfortSnapshot(ObservationMetadata metadata,boolean enabled,Statu
             int excludedBlocks,int presentWeight,int enabledWeight,OptionalDouble score,Optional<Band> band) {
         public Room {
             roomKey=roomKey.immutable();reasonCounts=Map.copyOf(reasonCounts);
-            categoryPresence=Map.copyOf(categoryPresence);perCategoryQualifyingHitCount=Map.copyOf(perCategoryQualifyingHitCount);
-            if(enclosedBeds<0||interiorCellsConsidered<0||boundaryCellsConsidered<0||categoryPresence.size()!=8)
+            categoryPresence=Map.copyOf(categoryPresence);
+            var normalizedHits=new EnumMap<ComfortCategory,Integer>(ComfortCategory.class);
+            for(var c:ComfortCategory.values())normalizedHits.put(c,perCategoryQualifyingHitCount.getOrDefault(c,0));
+            perCategoryQualifyingHitCount=Map.copyOf(normalizedHits);
+            if(enclosedBeds<0||interiorCellsConsidered<0||boundaryCellsConsidered<0||categoryPresence.size()!=ComfortCategory.values().length)
                 throw new IllegalArgumentException("Invalid Comfort room");
         }
     }
     public ComfortSnapshot {
-        reasonCounts=Map.copyOf(reasonCounts);categoryCoverage=Map.copyOf(categoryCoverage);categories=Map.copyOf(categories);roomRecords=List.copyOf(roomRecords);
+        reasonCounts=Map.copyOf(reasonCounts);
+        var normalizedCoverage=new EnumMap<ComfortCategory,Integer>(ComfortCategory.class);
+        for(var c:ComfortCategory.values())normalizedCoverage.put(c,categoryCoverage.getOrDefault(c,0));
+        categoryCoverage=Map.copyOf(normalizedCoverage);
+        categories=Map.copyOf(categories);roomRecords=List.copyOf(roomRecords);
         if(roomRecords.size()>4096||assessedRooms<0||assessedEnclosedBeds<0||roomsAttempted<0||roomsAttempted>roomLimit
             ||blockInspections<0||blockInspections>sharedBlockLimit)throw new IllegalArgumentException("Invalid Comfort snapshot");
         if(residentialComfortPercent.isPresent()&&(!enabled||scanStatus!=Status.COMPLETE||condition!=Condition.OBSERVED))
