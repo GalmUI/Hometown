@@ -29,7 +29,6 @@ public final class FoodGrowingCollector {
         var bell=town.bellPosition();int radius=town.radius();
         int minX=bell.getX()-radius,maxX=bell.getX()+radius,minZ=bell.getZ()-radius,maxZ=bell.getZ()+radius;
         int minY=Math.max(level.getMinBuildHeight(),bell.getY()-vertical),maxY=Math.min(level.getMaxBuildHeight()-1,bell.getY()+vertical);
-        boolean stop=false;
         outer:
         for(int chunkX=minX>>4;chunkX<=maxX>>4;chunkX++) {
             for(int chunkZ=minZ>>4;chunkZ<=maxZ>>4;chunkZ++) {
@@ -39,7 +38,10 @@ public final class FoodGrowingCollector {
                 catch(RuntimeException error){reason(reasons,FoodGrowingSnapshot.Reason.INTERNAL_ERROR);continue;}
                 if(chunk==null){reason(reasons,FoodGrowingSnapshot.Reason.UNLOADED_CHUNKS);continue;}
                 loaded++;
-                var sections=chunk.getSections();
+                net.minecraft.world.level.chunk.LevelChunkSection[] sections;
+                try { sections=chunk.getSections(); }
+                catch(RuntimeException error){reason(reasons,FoodGrowingSnapshot.Reason.INTERNAL_ERROR);continue;}
+                if(sections==null){reason(reasons,FoodGrowingSnapshot.Reason.INTERNAL_ERROR);continue;}
                 for(int sectionIndex=0;sectionIndex<sections.length;sectionIndex++) {
                     int sectionY=level.getSectionYFromSectionIndex(sectionIndex),baseY=sectionY<<4;
                     int sy0=Math.max(minY,baseY),sy1=Math.min(maxY,baseY+15);
@@ -56,7 +58,7 @@ public final class FoodGrowingCollector {
                         });
                     } catch(RuntimeException error){reason(reasons,FoodGrowingSnapshot.Reason.INTERNAL_ERROR);continue;}
                     paletteInspections+=palette[0];
-                    if(budget[0]){reason(reasons,FoodGrowingSnapshot.Reason.SCAN_LIMIT_REACHED);stop=true;break outer;}
+                    if(budget[0]){reason(reasons,FoodGrowingSnapshot.Reason.SCAN_LIMIT_REACHED);break outer;}
                     if(!candidate)continue;
                     candidateSections++;
                     int sx0=Math.max(minX,chunkX<<4),sx1=Math.min(maxX,(chunkX<<4)+15);
@@ -64,7 +66,7 @@ public final class FoodGrowingCollector {
                     for(int x=sx0;x<=sx1;x++)for(int y=sy0;y<=sy1;y++)for(int z=sz0;z<=sz1;z++) {
                         blockInspections++;
                         var sample=cache.read(new BlockPos(x,y,z),false);
-                        if(sample.failure()==BlockObservationCache.Failure.SCAN_LIMIT_REACHED){reason(reasons,FoodGrowingSnapshot.Reason.SCAN_LIMIT_REACHED);stop=true;break outer;}
+                        if(sample.failure()==BlockObservationCache.Failure.SCAN_LIMIT_REACHED){reason(reasons,FoodGrowingSnapshot.Reason.SCAN_LIMIT_REACHED);break outer;}
                         if(sample.failure()!=BlockObservationCache.Failure.NONE){
                             reason(reasons,sample.failure()==BlockObservationCache.Failure.UNLOADED_CHUNKS?FoodGrowingSnapshot.Reason.UNLOADED_CHUNKS:FoodGrowingSnapshot.Reason.INTERNAL_ERROR);continue;
                         }
