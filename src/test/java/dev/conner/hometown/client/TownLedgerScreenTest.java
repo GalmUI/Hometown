@@ -196,7 +196,7 @@ class TownLedgerScreenTest {
                     }
                     if (section == DevelopmentSection.PROSPERITY) {
                         assertTrue(subsection.contains("Prosperity"));
-                        assertTrue(subsection.stream().anyMatch(t -> t.contains("This aspect of town development is not yet tracked")));
+                        assertFalse(subsection.stream().anyMatch(t -> t.startsWith("Capacity:") || t.startsWith("Privacy:")));
                     }
                     if (section == DevelopmentSection.COMFORT) {
                         assertTrue(subsection.contains("Comfort"));
