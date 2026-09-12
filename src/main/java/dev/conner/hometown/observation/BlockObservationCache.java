@@ -23,11 +23,16 @@ public final class BlockObservationCache {
     }
     public int inspections(){return inspections;}
     public int limit(){return limit;}
+    /** Charge one non-position classification unit (for example a chunk-section palette entry). */
+    public Failure consumeInspection() {
+        if(inspections>=limit)return Failure.SCAN_LIMIT_REACHED;
+        inspections++;
+        return Failure.NONE;
+    }
     public Sample read(BlockPos position,boolean lighting) {
         var old=copies.get(position);
         if(old!=null)return old;
-        if(inspections>=limit)return new Sample(null,OptionalInt.empty(),Failure.SCAN_LIMIT_REACHED);
-        inspections++;
+        if(consumeInspection()!=Failure.NONE)return new Sample(null,OptionalInt.empty(),Failure.SCAN_LIMIT_REACHED);
         Sample sample;
         if(!bounds.contains(Vec3.atCenterOf(position)))sample=new Sample(null,OptionalInt.empty(),Failure.SAMPLE_OUT_OF_BOUNDS);
         else if(level==null)sample=new Sample(null,OptionalInt.empty(),Failure.UNLOADED_CHUNKS);
