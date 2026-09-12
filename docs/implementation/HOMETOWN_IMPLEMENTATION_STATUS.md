@@ -1,5 +1,117 @@
 # Hometown implementation status
 
+## Current authoritative checkpoint — 2026-09-12
+
+**Specification Revision:** 2 — `docs/specs/Hometown_Implementation_Specification_Revision_2.docx`  
+**Current Milestone:** R2 M6 — Integration and delivery  
+**Status:** **PARTIAL — 0.9.0 automated/server gates green; owner live/UI/performance validation pending**  
+**Current playtest version:** `0.9.0`  
+**Versioned implementation head:** `ff5d5fbd79999d1a2e3272c76db112b31d600dbd`  
+**M6 evidence:** `docs/evidence/r2-m6-2026-09-12/README.md`, `ACCEPTANCE_MATRIX.md`, `LIVE_VALIDATION.md`
+
+The repository intentionally keeps this tracker at `docs/implementation/HOMETOWN_IMPLEMENTATION_STATUS.md`; this is the organized-repository equivalent of the R2 specification's historical `docs/HOMETOWN_IMPLEMENTATION_STATUS.md` path. Do not create a competing second status file.
+
+### Milestones
+
+| Milestone | State | Current evidence |
+| --- | --- | --- |
+| R2 M0 | COMPLETE | Baseline preserved/mapped; later owner and regression validation supersedes the original pending notes retained below |
+| R2 M1 | COMPLETE | Shared observation/Safety integrated; subsequent milestone regressions and owner testing retained |
+| R2 M2 | COMPLETE | Comfort implementation and owner validation complete |
+| R2 M3 | COMPLETE | Food Variety/Growing implementation and owner validation complete |
+| R2 M4 | COMPLETE | Commerce implementation and owner validation complete |
+| R2 M5 | COMPLETE | Prosperity/History 0.8.1 complete; owner evidence in `docs/evidence/r2-m5-2026-09-12/README.md` |
+| R2 M6 | PARTIAL | 0.9.0 automated build/test + dedicated server/reload PASS; final M6 LIVE/PROFILE gates remain |
+
+R3 remains **NOT_STARTED**. M6 does not authorize Revision 3 and R3 must not begin until every required R2 M6 acceptance item is PASS with evidence.
+
+### Completed requirements / current M6 evidence
+
+- All 96 R2 acceptance IDs are mapped in `docs/evidence/r2-m6-2026-09-12/ACCEPTANCE_MATRIX.md` to automated, prior-live, or remaining live/server/profile evidence.
+- Exact versioned `0.9.0` commit `ff5d5fbd79999d1a2e3272c76db112b31d600dbd` passed GitHub Actions run **34726245824**: normal Gradle `test` PASS and normal Gradle `build` PASS under Java 21.
+- Diagnostic-only cached performance profiling is implemented and tested. `/hometown debug performance [uuid]` reads a cached normal Ledger observation and performs no world scan or History mutation.
+- Isolated dedicated-server/RCON workflow run **34726154745**, job **103640502723**, PASS: Hometown loaded server-side, Minecraft reached `Done`, actual RCON `reload` completed, recipes/advancements reloaded, and actual RCON `stop` shut the server down without a client-dist crash.
+- R2 configuration/tag/rule surfaces are documented in `docs/CONFIGURATION_AND_DATAPACKS.md`.
+- Prior M5 owner evidence proves real old-world v1→v2 migration, founding preservation, Prosperity calculation, 200-tick Population confirmation, durable History across restart/no duplicate, Housing shortage start/resolution, and population-change behavior.
+
+### Changed files in M6 so far
+
+- `src/main/java/dev/conner/hometown/settlement/TownLedgerService.java` — capture fresh observation elapsed time and expose cached diagnostic profile without rescanning.
+- `src/main/java/dev/conner/hometown/settlement/LedgerPerformanceProfile.java` — immutable memory-only O05 timing/work-counter view.
+- `src/main/java/dev/conner/hometown/command/M6DebugCommands.java` — operator cached-performance report.
+- `src/main/java/dev/conner/hometown/Hometown.java` — register M6 diagnostic command.
+- `src/test/java/dev/conner/hometown/settlement/LedgerObservationTest.java` and `src/test/java/dev/conner/hometown/command/M6DebugCommandsTest.java` — diagnostic lifecycle/format coverage while preserving existing request-call-count assertions.
+- `docs/CONFIGURATION_AND_DATAPACKS.md`, `docs/README.md`, and `docs/evidence/r2-m6-2026-09-12/*` — delivery documentation, acceptance matrix and owner procedure.
+- `gradle.properties` — M6 owner build version `0.9.0`.
+
+### Build command and result
+
+GitHub Actions run **34726245824** on the exact versioned 0.9.0 implementation head:
+
+```text
+./gradlew test
+./gradlew build
+```
+
+Result: **PASS / PASS**. The normal owner artifact is `build/libs/hometown-0.9.0.jar` after the same local build.
+
+### Automated/server tests run
+
+- Complete normal test suite: **PASS** on exact 0.9.0 code head.
+- Normal mod build: **PASS** on exact 0.9.0 code head.
+- Dedicated server startup/client-dist smoke: **PASS**.
+- Actual server resource reload through RCON: **PASS**.
+- Actual server shutdown through RCON: **PASS**.
+- M6 performance-diagnostic integration/lifecycle tests: **PASS**.
+
+### Manual/live tests still required
+
+Follow `docs/evidence/r2-m6-2026-09-12/LIVE_VALIDATION.md`. Required remaining evidence includes:
+
+- O02 final integrated Ledger/UI sweep across practical GUI scales.
+- Reversible Housing/Privacy/Safety/Comfort/Food/Commerce/Prosperity cross-system spot checks.
+- B08 real unresolved-loot non-mutation fixture.
+- Q01/Q06 real loaded-fringe/no-force-loading fixture.
+- Final 0.9.0 save/exit/reload plus in-world `/reload` sanity.
+- O05 representative Oured performance samples using `/hometown debug performance`.
+- O05 deliberately dense temporary town performance sample and bounded-ceiling behavior.
+
+A required live/profile item remains NOT RUN until the owner reports an actual observed result. M6 therefore remains PARTIAL.
+
+### Known issues / blockers
+
+No current automated compile/test/server blocker is known. The blocking dependency is the required owner/live environment for UI rendering, real world/loading/loot fixtures, final lifecycle sanity and measured performance. Any functional code/data fix after the 0.9.0 owner pass begins must use version `0.9.1` and receive targeted retest.
+
+### Current owner mapping
+
+| Contract owner | Current implementation owner |
+| --- | --- |
+| Founding/identity/access | `interaction/BellInteractionHandler`, `settlement/SettlementManager`, `SettlementValidator`, `Settlement` |
+| Settlement persistence | `settlement/HometownSavedData` |
+| Ledger orchestration/cache/generation | `settlement/TownLedgerService` |
+| Residents / Commerce source facts | `settlement/SettlementQueries`, `SettlementScanner`, `SettlementStats`; `commerce/CommerceEvaluator` |
+| Housing / Privacy | `housing/HousingScanner`, `HousingSnapshot`, existing room owners |
+| Safety | `safety/SafetyCollector`, `SafetyEvaluator`, `SafetySnapshot` |
+| Comfort | `comfort/ComfortCollector`, `ComfortEvaluator`, `ComfortSnapshot`, `ComfortRules` |
+| Food Reserves / Variety / Growing | existing Food scanner/rules/snapshot plus `FoodVarietyEvaluator`, `FoodGrowingCollector`, `FoodGrowingEvaluator`, `CropRules` |
+| Prosperity | `prosperity/ProsperityEvaluator`, `ProsperitySnapshot` |
+| History | `history/HistoryTracker`, typed `HistoryEvent`; durable fields remain in `HometownSavedData` |
+| Config | `config/HometownServerConfig` |
+| Network | `network/HometownNetworking` and bounded payloads |
+| Client Ledger | `client/TownLedgerScreen` plus module presentation helpers |
+| Debug / M6 profile | existing debug owners plus `command/M5DebugCommands`, `M6DebugCommands` |
+
+### Next milestone / resume action
+
+**Next milestone:** none yet; R2 M6 remains the current incomplete milestone.  
+**Resume action:** owner pulls/builds 0.9.0 and executes `LIVE_VALIDATION.md`, returning any UI failures plus exact representative/dense `/hometown debug performance` output. Close or patch every remaining M6 LIVE/PROFILE item before marking R2 COMPLETE or beginning R3.
+
+---
+
+## Historical retained status
+
+The material below is retained as historical milestone evidence. Where it conflicts with the current checkpoint above (for example old milestone states or absent future owners), the current checkpoint supersedes it; do not reinterpret the older text as current project state.
+
 Updated 2026-09-10. Current milestone: **R2 M2 — Comfort**, **PARTIAL (implementation in progress)**. M0 and M1 remain OWNER_VALIDATION_PENDING. The sequential owner amendment below supersedes historical one-run stop instructions in this record.
 
 ## Selection and authority
