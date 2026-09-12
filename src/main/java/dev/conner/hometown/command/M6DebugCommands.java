@@ -34,28 +34,17 @@ public final class M6DebugCommands {
     static String format(LedgerPerformanceProfile p,long now){
         long age=now>=p.observedGameTime()?now-p.observedGameTime():0;
         var b=p.bellPosition();
-        return "Hometown Ledger performance (cached normal observation; this command ran no scan)
-"
-                +"Town: "+p.townName()+" ["+p.settlementId()+"]
-"
-                +"Dimension/Bell/Radius: "+p.dimension()+" "+b.getX()+","+b.getY()+","+b.getZ()+" r="+p.radius()+"
-"
-                +"Generation: "+p.generation()+" | observedGameTime="+p.observedGameTime()+" | ageTicks="+age+"
-"
-                +"Fresh observation elapsed: "+String.format(Locale.ROOT,"%.3f",p.elapsedMillis())+" ms
-"
-                +"Population/Beds: "+p.population()+" / "+p.enclosedBeds()+"
-"
-                +"Loaded town chunks: "+p.loadedChunks()+" / "+p.requiredChunks()+"
-"
-                +"Food containers/scanned storage: "+p.foodContainers()+" / "+p.foodStorageScanned()+"
-"
-                +"Comfort rooms: assessed="+p.assessedRooms()+" attempted="+p.roomsAttempted()+"
-"
-                +"Entity work: "+p.entitiesInspected()+" / "+p.entityLimit()+"
-"
-                +"Shared new-block work: "+p.sharedBlockInspections()+" / "+p.sharedBlockLimit()+"
-"
+        return "Hometown Ledger performance (cached normal observation; this command ran no scan)\n"
+                +"Town: "+p.townName()+" ["+p.settlementId()+"]\n"
+                +"Dimension/Bell/Radius: "+p.dimension()+" "+b.getX()+","+b.getY()+","+b.getZ()+" r="+p.radius()+"\n"
+                +"Generation: "+p.generation()+" | observedGameTime="+p.observedGameTime()+" | ageTicks="+age+"\n"
+                +"Fresh observation elapsed: "+String.format(Locale.ROOT,"%.3f",p.elapsedMillis())+" ms\n"
+                +"Population/Beds: "+p.population()+" / "+p.enclosedBeds()+"\n"
+                +"Loaded town chunks: "+p.loadedChunks()+" / "+p.requiredChunks()+"\n"
+                +"Food containers/scanned storage: "+p.foodContainers()+" / "+p.foodStorageScanned()+"\n"
+                +"Comfort rooms: assessed="+p.assessedRooms()+" attempted="+p.roomsAttempted()+"\n"
+                +"Entity work: "+p.entitiesInspected()+" / "+p.entityLimit()+"\n"
+                +"Shared new-block work: "+p.sharedBlockInspections()+" / "+p.sharedBlockLimit()+"\n"
                 +"Growing work: sections="+p.growingCandidateSections()+" palette="+p.growingPaletteInspections()+" positions="+p.growingBlockInspections();
     }
 
