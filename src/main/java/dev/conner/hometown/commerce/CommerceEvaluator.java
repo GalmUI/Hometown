@@ -37,9 +37,14 @@ public final class CommerceEvaluator {
         if(eligible==0)return new CommerceSnapshot(metadata,true,CommerceSnapshot.Status.COMPLETE,Map.of(),total,0,0,0,babies,nitwits,
                 OptionalDouble.empty(),OptionalDouble.empty(),CommerceSnapshot.EmploymentState.NO_ELIGIBLE_ADULTS,counts.size(),counts,
                 observation.residentInspections(),observation.duplicateResidents());
-        var state=percent==0?CommerceSnapshot.EmploymentState.UNEMPLOYED:percent<50?CommerceSnapshot.EmploymentState.LIMITED:
-                percent<80?CommerceSnapshot.EmploymentState.ACTIVE:percent<100?CommerceSnapshot.EmploymentState.STRONG:CommerceSnapshot.EmploymentState.FULLY_EMPLOYED;
+        var state=stateFor(percent);
         return new CommerceSnapshot(metadata,true,CommerceSnapshot.Status.COMPLETE,Map.of(),total,eligible,employed,unemployed,babies,nitwits,
                 OptionalDouble.of(percent),OptionalDouble.empty(),state,counts.size(),counts,observation.residentInspections(),observation.duplicateResidents());
+    }
+
+    static CommerceSnapshot.EmploymentState stateFor(double percent) {
+        if(!Double.isFinite(percent)||percent<0||percent>100)throw new IllegalArgumentException("Invalid employment percentage");
+        return percent==0?CommerceSnapshot.EmploymentState.UNEMPLOYED:percent<50?CommerceSnapshot.EmploymentState.LIMITED:
+                percent<80?CommerceSnapshot.EmploymentState.ACTIVE:percent<100?CommerceSnapshot.EmploymentState.STRONG:CommerceSnapshot.EmploymentState.FULLY_EMPLOYED;
     }
 }
