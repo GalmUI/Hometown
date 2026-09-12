@@ -48,6 +48,10 @@ class LedgerObservationTest {
             food.when(()->FoodScanner.observe(eq(level),eq(town),eq(stats),eq(32),any())).thenReturn(new FoodObservation(reserves,List.of()));
             when(level.getGameTime()).thenReturn(100L);
             var first=open(alice,component).snapshot();
+            var firstProfile=TownLedgerService.lastPerformanceProfile(alice,town.id()).orElseThrow();
+            assertEquals(first.metadata().requestGeneration(),firstProfile.generation());
+            assertEquals(first.metadata().observedGameTime(),firstProfile.observedGameTime());
+            assertEquals(5,firstProfile.population());assertTrue(firstProfile.elapsedNanos()>=0);
             assertEquals(reserves,first.food(),"M3 one-pass observation must preserve the protected Reserves snapshot");
             assertEquals(100,first.metadata().observedGameTime());
             assertEquals(first.metadata(),open(bob,component).snapshot().metadata());
@@ -65,6 +69,7 @@ class LedgerObservationTest {
             assertEquals(TownLedgerSnapshotPayload.Error.WAIT,TownLedgerService.respond(alice,
                 new RequestTownLedgerPayload(InteractionHand.MAIN_HAND,0,3,first.metadata().requestGeneration()),Items.WRITTEN_BOOK,component).error());
             TownLedgerService.respond(alice,new RequestTownLedgerPayload(InteractionHand.MAIN_HAND,-1,4,fresh.metadata().requestGeneration()),Items.WRITTEN_BOOK,component);
+            assertTrue(TownLedgerService.lastPerformanceProfile(alice,town.id()).isPresent(),"closing the screen must not erase the cached profile");
             assertEquals(TownLedgerSnapshotPayload.Error.WAIT,TownLedgerService.respond(alice,
                 new RequestTownLedgerPayload(InteractionHand.MAIN_HAND,0,5,fresh.metadata().requestGeneration()),Items.WRITTEN_BOOK,component).error());
             var reopen=open(alice,component).snapshot();assertEquals(200,reopen.metadata().observedGameTime());
@@ -95,6 +100,7 @@ class LedgerObservationTest {
             assertEquals(beforeDebug,store.all().size());
             assertFalse(store.isDirty());
             TownLedgerService.release(alice);
+            assertTrue(TownLedgerService.lastPerformanceProfile(alice,town.id()).isEmpty());
             assertEquals(TownLedgerSnapshotPayload.Error.WAIT,TownLedgerService.respond(alice,
                 new RequestTownLedgerPayload(InteractionHand.MAIN_HAND,0,6,revised.metadata().requestGeneration()),Items.WRITTEN_BOOK,component).error());
         } finally {TownLedgerService.release(server);}

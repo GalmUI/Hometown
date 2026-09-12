@@ -3,6 +3,7 @@ package dev.conner.hometown;
 import com.mojang.logging.LogUtils;
 import dev.conner.hometown.command.HometownDebugCommands;
 import dev.conner.hometown.command.M5DebugCommands;
+import dev.conner.hometown.command.M6DebugCommands;
 import dev.conner.hometown.component.HometownDataComponents;
 import dev.conner.hometown.config.HometownServerConfig;
 import dev.conner.hometown.interaction.BellInteractionHandler;
@@ -31,6 +32,7 @@ public final class Hometown {
         NeoForge.EVENT_BUS.addListener(BellInteractionHandler::onRightClick);
         NeoForge.EVENT_BUS.addListener(HometownDebugCommands::register);
         NeoForge.EVENT_BUS.addListener(M5DebugCommands::register);
+        NeoForge.EVENT_BUS.addListener(M6DebugCommands::register);
         NeoForge.EVENT_BUS.addListener((net.neoforged.neoforge.event.AddReloadListenerEvent event) -> {
             event.addListener(new dev.conner.hometown.comfort.ComfortRules());
             event.addListener(new dev.conner.hometown.food.CropRules());

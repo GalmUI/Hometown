@@ -34,12 +34,21 @@ public final class TownLedgerService {
             int cooldown,String tags,boolean available) {}
     private record Observation(Key key,SettlementStats stats,TownLedgerSnapshot.BellState bell,HousingSnapshot housing,
             FoodSnapshot food,FoodVarietySnapshot variety,FoodGrowingSnapshot growing,SafetySnapshot safety,ComfortSnapshot comfort,
-            CommerceSnapshot commerce,ProsperitySnapshot prosperity,List<HistoryEvent> history) {
-        Observation { history=List.copyOf(history); }
+            CommerceSnapshot commerce,ProsperitySnapshot prosperity,List<HistoryEvent> history,long elapsedNanos) {
+        Observation { history=List.copyOf(history);if(elapsedNanos<0)throw new IllegalArgumentException("Negative observation time"); }
         TownLedgerSnapshot page(int page) {
             return TownLedgerSnapshot.of(key.town(),stats,bell,page).withHousing(housing).withFood(food).withSafety(safety).withComfort(comfort);
         }
-        Observation withHistory(List<HistoryEvent> events){return new Observation(key,stats,bell,housing,food,variety,growing,safety,comfort,commerce,prosperity,events);}
+        Observation withHistory(List<HistoryEvent> events){return new Observation(key,stats,bell,housing,food,variety,growing,safety,comfort,commerce,prosperity,events,elapsedNanos);}
+        Observation withElapsed(long nanos){return new Observation(key,stats,bell,housing,food,variety,growing,safety,comfort,commerce,prosperity,history,nanos);}
+        LedgerPerformanceProfile performance(){
+            var town=key.town();var fd=food.diagnostics();
+            return new LedgerPerformanceProfile(town.id(),town.name(),town.dimension().location().toString(),town.bellPosition(),town.radius(),
+                    safety.metadata().requestGeneration(),safety.metadata().observedGameTime(),elapsedNanos,stats.population(),housing.enclosedBeds(),
+                    food.foodContainers(),fd.storageScanned(),comfort.roomsAttempted(),comfort.assessedRooms(),safety.loadedChunks(),safety.requiredChunks(),
+                    safety.entitiesInspected(),safety.entityLimit(),growing.sharedBlockInspections(),growing.sharedBlockLimit(),
+                    growing.candidateSections(),growing.paletteInspections(),growing.blockInspections());
+        }
     }
     private record Session(Observation observation,long requestedAt,long lastAccess,boolean closed) {}
     private static final class State {
@@ -89,11 +98,12 @@ public final class TownLedgerService {
         if(last==null&&sessions.size()>=MAX_CACHED_TOWNS)return error(request,TownLedgerSnapshotPayload.Error.WAIT);
         if(observation==null){
             if(state.sameTick.size()>=MAX_CACHED_TOWNS)return error(request,TownLedgerSnapshotPayload.Error.WAIT);
-            var metadata=metadata(key,++state.generation,now);
+            var metadata=metadata(key,++state.generation,now);long startedNanos=System.nanoTime();
             observation=collect(level,key,metadata);
             state.historyTracker.advance(saved,town,metadata,observation.stats(),observation.housing(),observation.food(),observation.prosperity(),
                     key.historyFingerprints(),key.historySettings());
             observation=observation.withHistory(saved.history(town.id()).newestFirst());
+            observation=observation.withElapsed(Math.max(0L,System.nanoTime()-startedNanos));
             state.sameTick.put(key,observation);
         }
         sessions.put(town.id(),new Session(observation,requestedAt,now,false));
@@ -115,6 +125,15 @@ public final class TownLedgerService {
     /** Immutable newest-first History captured by the originating Ledger generation. */
     public static Optional<List<HistoryEvent>> history(ServerPlayer player,UUID settlementId,long generation){
         return cached(player,settlementId,generation).map(Observation::history);
+    }
+    /** Last normal Ledger observation for this player's town session. Read-only and never scans. */
+    public static Optional<LedgerPerformanceProfile> lastPerformanceProfile(ServerPlayer player,UUID settlementId){
+        var state=STATES.get(player.getServer());if(state==null)return Optional.empty();
+        var sessions=state.players.get(player.getUUID());if(sessions==null)return Optional.empty();
+        var session=sessions.get(settlementId);if(session==null)return Optional.empty();
+        long now=player.getServer().overworld().getGameTime();
+        if(now<session.lastAccess()||now-session.lastAccess()>SESSION_EXPIRY)return Optional.empty();
+        return Optional.of(session.observation().performance());
     }
     private static Optional<Observation> cached(ServerPlayer player,UUID settlementId,long generation){
         var state=STATES.get(player.getServer());if(state==null)return Optional.empty();
@@ -227,7 +246,7 @@ public final class TownLedgerService {
         var growing=FoodGrowingCollector.collect(level,town,key.vertical(),metadata,key.growing(),key.crops(),blocks);
         var commerce=CommerceEvaluator.evaluate(metadata,residents,key.commerce());
         var prosperity=ProsperityEvaluator.evaluate(metadata,stats,housing.snapshot(),food.reserves(),key.food(),safety,comfort,commerce,key.prosperity());
-        return new Observation(key,stats,bell,housing.snapshot(),food.reserves(),variety,growing,safety,comfort,commerce,prosperity,List.of());
+        return new Observation(key,stats,bell,housing.snapshot(),food.reserves(),variety,growing,safety,comfort,commerce,prosperity,List.of(),0L);
     }
     private static TownLedgerSnapshotPayload error(RequestTownLedgerPayload request,TownLedgerSnapshotPayload.Error error) {
         return new TownLedgerSnapshotPayload(request.requestId(),null,error);
