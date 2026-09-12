@@ -39,9 +39,11 @@ class LedgerObservationTest {
             data.when(()->HometownSavedData.get(server)).thenReturn(store);
             scanner.when(()->SettlementScanner.scan(level,town,32)).thenReturn(stats);
             housing.when(()->HousingScanner.observe(level,town,stats,32)).thenReturn(new HousingScanner.Observation(new HousingSnapshot(5,0,0,0,0,0,0,0,0,true),Set.of()));
-            food.when(()->FoodScanner.scan(eq(level),eq(town),eq(stats),eq(32),any())).thenReturn(FoodRules.DEFAULT.snapshot(5,0,0,0,0));
+            var reserves=FoodRules.DEFAULT.snapshot(5,0,0,0,0);
+            food.when(()->FoodScanner.observe(eq(level),eq(town),eq(stats),eq(32),any())).thenReturn(new FoodObservation(reserves,List.of()));
             when(level.getGameTime()).thenReturn(100L);
             var first=open(alice,component).snapshot();
+            assertEquals(reserves,first.food(),"M3 one-pass observation must preserve the protected Reserves snapshot");
             assertEquals(100,first.metadata().observedGameTime());
             assertEquals(first.metadata(),open(bob,component).snapshot().metadata());
             scanner.verify(()->SettlementScanner.scan(level,town,32),times(1));
