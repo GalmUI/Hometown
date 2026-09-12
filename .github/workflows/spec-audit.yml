@@ -1,4 +1,4 @@
-name: R2 Comfort Spec Audit
+name: R2 Commerce Spec Audit
 
 on:
   push:
@@ -11,11 +11,11 @@ permissions:
   contents: read
 
 jobs:
-  extract-r2-comfort:
+  extract-r2-commerce:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - name: Extract relevant R2 specification text
+      - name: Extract exact R2 Commerce specification text
         shell: python
         run: |
           import re
@@ -49,19 +49,14 @@ jobs:
                       if row_text:
                           blocks.append(row_text)
 
-          patterns = [
-              r'\bM2\b', r'\bComfort\b', r'\bC0[1-9]\b', r'\bC10\b',
-              r'geometry', r'interior', r'boundary', r'category', r'predicate',
-              r'reload', r'weight', r'room', r'excluded', r'budget', r'Ledger'
-          ]
-          matcher = re.compile('|'.join(patterns), re.IGNORECASE)
+          matcher = re.compile(r'\bM4\b|\bCommerce\b|\bE0[1-9]\b', re.IGNORECASE)
           selected = set()
           for i, block in enumerate(blocks):
               if matcher.search(block):
-                  for j in range(max(0, i - 3), min(len(blocks), i + 4)):
+                  for j in range(max(0, i - 2), min(len(blocks), i + 3)):
                       selected.add(j)
 
-          print('=== R2 COMFORT SPEC AUDIT EXTRACT ===')
+          print('=== R2 COMMERCE SPEC AUDIT EXTRACT ===')
           for i in sorted(selected):
               print(f'{i:04d}: {blocks[i]}')
           print('=== END EXTRACT ===')
