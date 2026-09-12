@@ -13,6 +13,7 @@ public final class HometownServerConfig {
     public static final ModConfigSpec.BooleanValue CONSUME_BOOK;
     public static final ModConfigSpec.BooleanValue SAFETY_ENABLED;
     public static final ModConfigSpec.BooleanValue COMFORT_ENABLED;
+    public static final ModConfigSpec.BooleanValue COMMERCE_ENABLED;
     public static final ModConfigSpec.IntValue COMFORT_MAX_ROOMS, COMFORT_MAX_CELLS;
     public static final java.util.Map<dev.conner.hometown.comfort.ComfortCategory,ModConfigSpec.BooleanValue> COMFORT_CATEGORY_ENABLED=new java.util.EnumMap<>(dev.conner.hometown.comfort.ComfortCategory.class);
     public static final java.util.Map<dev.conner.hometown.comfort.ComfortCategory,ModConfigSpec.IntValue> COMFORT_CATEGORY_WEIGHT=new java.util.EnumMap<>(dev.conner.hometown.comfort.ComfortCategory.class);
@@ -67,6 +68,9 @@ public final class HometownServerConfig {
             builder.pop();
         }
         builder.pop().pop();
+        builder.push("commerce");
+        COMMERCE_ENABLED=builder.define("enabled",true);
+        builder.pop();
         SPEC = builder.build();
     }
     private HometownServerConfig() {}
