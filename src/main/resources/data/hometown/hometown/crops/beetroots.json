@@ -1,0 +1,7 @@
+{
+  "schemaVersion": 1,
+  "block": "minecraft:beetroots",
+  "family": "hometown:beetroot",
+  "anchorProperties": {},
+  "matureProperties": { "age": "3" }
+}
