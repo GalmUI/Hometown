@@ -1,6 +1,6 @@
 # Hometown documentation
 
-This directory separates current specification authority, implementation tracking, historical technical notes, and retained validation evidence.
+This directory separates current specification authority, implementation tracking, supported configuration/datapack surfaces, historical technical notes, and retained validation evidence.
 
 ## Specification authority
 
@@ -9,6 +9,11 @@ This directory separates current specification authority, implementation trackin
 - `specs/archive/Hometown_Implementation_Specification.docx` — older pre-Revision-2 specification retained for history only.
 
 Revision 1 / older material must not override Revision 2 or Revision 3 requirements.
+
+## Configuration and datapacks
+
+- `CONFIGURATION_AND_DATAPACKS.md` — supported R2 server configuration, Comfort/Food/Safety tags, version-1 Comfort predicates and crop definitions, reload behavior, compatibility boundaries, and M6 performance diagnostics.
+- `examples/comfort/README.md` — documentation-only optional furniture compatibility example.
 
 ## Implementation tracking
 
