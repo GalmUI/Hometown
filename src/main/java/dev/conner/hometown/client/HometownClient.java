@@ -23,6 +23,8 @@ public final class HometownClient {
             }, payload -> {
                 // A response cannot reopen a closed screen or replace a newer request.
                 if (Minecraft.getInstance().screen instanceof TownLedgerScreen screen) screen.receive(payload);
+            }, payload -> {
+                if (Minecraft.getInstance().screen instanceof TownLedgerScreen screen) screen.receiveFoodM3(payload);
             });
         });
     }
