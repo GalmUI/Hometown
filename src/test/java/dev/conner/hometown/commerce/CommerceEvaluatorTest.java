@@ -30,14 +30,42 @@ class CommerceEvaluatorTest {
                 ResourceLocation.parse("minecraft:cleric"),1,ResourceLocation.parse("minecraft:toolsmith"),1),result.professionCounts());
     }
 
-    @Test void E02_E05_exactBandBoundariesUseRawRatio(){
-        assertBand(0,4,CommerceSnapshot.EmploymentState.UNEMPLOYED,0.0);
-        assertBand(1,3,CommerceSnapshot.EmploymentState.LIMITED,25.0);
-        assertBand(2,2,CommerceSnapshot.EmploymentState.ACTIVE,50.0);
-        assertBand(3,1,CommerceSnapshot.EmploymentState.ACTIVE,75.0);
-        assertBand(4,1,CommerceSnapshot.EmploymentState.STRONG,80.0);
-        assertBand(9,1,CommerceSnapshot.EmploymentState.STRONG,90.0);
-        assertBand(4,0,CommerceSnapshot.EmploymentState.FULLY_EMPLOYED,100.0);
+    @Test void E02_diversityUsesEmployedProfessionIdsOnly(){
+        var facts=new ArrayList<CommerceResidentFact>();
+        facts.addAll(employed(3,"minecraft:farmer"));facts.addAll(employed(2,"minecraft:librarian"));facts.add(fact(false,"minecraft:cleric"));facts.add(fact(false,"minecraft:toolsmith"));
+        facts.add(fact(false,"minecraft:none"));facts.add(fact(false,"minecraft:nitwit"));
+        var result=CommerceEvaluator.evaluate(META,observation(SettlementStats.Availability.COMPLETE,facts),true);
+        assertEquals(4,result.professionDiversity());assertEquals(7,result.employedAdults());
+        assertFalse(result.professionCounts().containsKey(ResourceLocation.parse("minecraft:none")));
+        assertFalse(result.professionCounts().containsKey(ResourceLocation.parse("minecraft:nitwit")));
+    }
+
+    @Test void E03_professionChangeKeepsEmploymentAndChangesDiversityOnlyOnIdAppearanceOrDisappearance(){
+        var before=new ArrayList<CommerceResidentFact>();before.addAll(employed(2,"minecraft:farmer"));before.add(fact(false,"minecraft:librarian"));before.add(fact(false,"minecraft:none"));
+        var farmerToLibrarian=new ArrayList<CommerceResidentFact>();farmerToLibrarian.add(fact(false,"minecraft:farmer"));farmerToLibrarian.addAll(employed(2,"minecraft:librarian"));farmerToLibrarian.add(fact(false,"minecraft:none"));
+        var finalFarmerToLibrarian=new ArrayList<CommerceResidentFact>();finalFarmerToLibrarian.addAll(employed(3,"minecraft:librarian"));finalFarmerToLibrarian.add(fact(false,"minecraft:none"));
+        var first=CommerceEvaluator.evaluate(META,observation(SettlementStats.Availability.COMPLETE,before),true);
+        var changedCounts=CommerceEvaluator.evaluate(META,observation(SettlementStats.Availability.COMPLETE,farmerToLibrarian),true);
+        var removedId=CommerceEvaluator.evaluate(META,observation(SettlementStats.Availability.COMPLETE,finalFarmerToLibrarian),true);
+        assertEquals(first.employmentPercent().orElseThrow(),changedCounts.employmentPercent().orElseThrow());
+        assertEquals(first.employmentPercent().orElseThrow(),removedId.employmentPercent().orElseThrow());
+        assertEquals(2,first.professionDiversity());assertEquals(2,changedCounts.professionDiversity(),"changing counts while both IDs remain must not change diversity");
+        assertEquals(1,removedId.professionDiversity(),"diversity changes only when the farmer ID disappears");
+        assertEquals(1,changedCounts.professionCounts().get(ResourceLocation.parse("minecraft:farmer")));
+        assertEquals(2,changedCounts.professionCounts().get(ResourceLocation.parse("minecraft:librarian")));
+    }
+
+    @Test void E04_employmentTransitionAndExactRawBandBoundaries(){
+        assertBand(7,3,CommerceSnapshot.EmploymentState.ACTIVE,70.0);
+        assertBand(8,2,CommerceSnapshot.EmploymentState.STRONG,80.0);
+        assertEquals(CommerceSnapshot.EmploymentState.UNEMPLOYED,CommerceEvaluator.stateFor(0));
+        assertEquals(CommerceSnapshot.EmploymentState.LIMITED,CommerceEvaluator.stateFor(0.01));
+        assertEquals(CommerceSnapshot.EmploymentState.LIMITED,CommerceEvaluator.stateFor(49.99));
+        assertEquals(CommerceSnapshot.EmploymentState.ACTIVE,CommerceEvaluator.stateFor(50));
+        assertEquals(CommerceSnapshot.EmploymentState.ACTIVE,CommerceEvaluator.stateFor(79.99));
+        assertEquals(CommerceSnapshot.EmploymentState.STRONG,CommerceEvaluator.stateFor(80));
+        assertEquals(CommerceSnapshot.EmploymentState.STRONG,CommerceEvaluator.stateFor(99.99));
+        assertEquals(CommerceSnapshot.EmploymentState.FULLY_EMPLOYED,CommerceEvaluator.stateFor(100));
     }
     private static void assertBand(int employed,int unemployed,CommerceSnapshot.EmploymentState state,double percent){
         var facts=new ArrayList<CommerceResidentFact>();facts.addAll(employed(employed,"minecraft:farmer"));for(int i=0;i<unemployed;i++)facts.add(fact(false,"minecraft:none"));
@@ -45,20 +73,31 @@ class CommerceEvaluatorTest {
         assertEquals(percent,result.employmentPercent().orElseThrow(),1e-9);assertEquals(state,result.employmentState());
     }
 
-    @Test void E06_nitwitBabyAndModdedProfessionRulesAreExact(){
-        var facts=List.of(fact(true,"example:engineer"),fact(false,"minecraft:nitwit"),fact(false,"minecraft:none"),fact(false,"example:engineer"));
+    @Test void E05_babyChangesPopulationOnlyAndBabyNitwitIsClassifiedOnlyAsBaby(){
+        var base=CommerceEvaluator.evaluate(META,observation(SettlementStats.Availability.COMPLETE,List.of(
+                fact(false,"minecraft:farmer"),fact(false,"minecraft:none"))),true);
+        var withBabyNitwit=CommerceEvaluator.evaluate(META,observation(SettlementStats.Availability.COMPLETE,List.of(
+                fact(false,"minecraft:farmer"),fact(false,"minecraft:none"),fact(true,"minecraft:nitwit"))),true);
+        assertEquals(base.eligibleAdults(),withBabyNitwit.eligibleAdults());assertEquals(base.employmentPercent().orElseThrow(),withBabyNitwit.employmentPercent().orElseThrow());
+        assertEquals(base.totalResidents()+1,withBabyNitwit.totalResidents());assertEquals(1,withBabyNitwit.excludedBabies());assertEquals(0,withBabyNitwit.excludedNitwits());
+    }
+
+    @Test void E06_nitwitAndModdedProfessionRulesAreExact(){
+        var facts=List.of(fact(false,"minecraft:nitwit"),fact(false,"minecraft:none"),fact(false,"example:engineer"));
         var result=CommerceEvaluator.evaluate(META,observation(SettlementStats.Availability.COMPLETE,facts),true);
-        assertEquals(4,result.totalResidents());assertEquals(2,result.eligibleAdults());assertEquals(1,result.employedAdults());assertEquals(1,result.unemployedAdults());
-        assertEquals(1,result.excludedBabies());assertEquals(1,result.excludedNitwits());assertEquals(50.0,result.employmentPercent().orElseThrow());
+        assertEquals(3,result.totalResidents());assertEquals(2,result.eligibleAdults());assertEquals(1,result.employedAdults());assertEquals(1,result.unemployedAdults());
+        assertEquals(0,result.excludedBabies());assertEquals(1,result.excludedNitwits());assertEquals(50.0,result.employmentPercent().orElseThrow());
         assertEquals(Map.of(ResourceLocation.parse("example:engineer"),1),result.professionCounts(),"registered/non-none profession identity is enough; no workstation rule exists");
         assertFalse(result.professionCounts().containsKey(ResourceLocation.parse("minecraft:none")));assertFalse(result.professionCounts().containsKey(ResourceLocation.parse("minecraft:nitwit")));
     }
 
-    @Test void E07_zeroEligibleAdultsIsNA_NotZeroPercent(){
-        var result=CommerceEvaluator.evaluate(META,observation(SettlementStats.Availability.COMPLETE,List.of(
+    @Test void E07_zeroEligibleAdultsIsNA_NotZeroPercentAndEmptyEmployedSetCanBeAuthoritativeZero(){
+        var noneEligible=CommerceEvaluator.evaluate(META,observation(SettlementStats.Availability.COMPLETE,List.of(
                 fact(true,"minecraft:farmer"),fact(true,"minecraft:none"),fact(false,"minecraft:nitwit"))),true);
-        assertEquals(3,result.totalResidents());assertEquals(0,result.eligibleAdults());assertTrue(result.employmentPercent().isEmpty());
-        assertTrue(result.observedEmploymentPercent().isEmpty());assertEquals(CommerceSnapshot.EmploymentState.NO_ELIGIBLE_ADULTS,result.employmentState());assertEquals(0,result.professionDiversity());
+        assertEquals(3,noneEligible.totalResidents());assertEquals(0,noneEligible.eligibleAdults());assertTrue(noneEligible.employmentPercent().isEmpty());
+        assertTrue(noneEligible.observedEmploymentPercent().isEmpty());assertEquals(CommerceSnapshot.EmploymentState.NO_ELIGIBLE_ADULTS,noneEligible.employmentState());assertEquals(0,noneEligible.professionDiversity());
+        var unemployed=CommerceEvaluator.evaluate(META,observation(SettlementStats.Availability.COMPLETE,List.of(fact(false,"minecraft:none"),fact(false,"minecraft:none"))),true);
+        assertEquals(0.0,unemployed.employmentPercent().orElseThrow());assertEquals(CommerceSnapshot.EmploymentState.UNEMPLOYED,unemployed.employmentState());
     }
 
     @Test void E08_partialResidentCoverageShowsObservedRatioWithoutAuthoritativeState(){
