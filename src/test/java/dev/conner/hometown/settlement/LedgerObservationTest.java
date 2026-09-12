@@ -10,6 +10,7 @@ import java.util.*;
 import net.minecraft.SharedConstants;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.component.DataComponentType;
+import net.minecraft.resources.ResourceLocation;
 import net.minecraft.server.Bootstrap;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.level.*;
@@ -33,11 +34,14 @@ class LedgerObservationTest {
         var alice=player(server,component,town);var bob=player(server,component,town);
         var stats=new SettlementStats(5,0,0,0,SettlementStats.Availability.COMPLETE,
             java.util.stream.IntStream.range(0,5).mapToObj(i->new dev.conner.hometown.network.data.ResidentSummary("V"+i,"unemployed",false)).toList());
+        var residentFacts=java.util.stream.IntStream.range(0,5).mapToObj(i->new dev.conner.hometown.commerce.CommerceResidentFact(
+                UUID.randomUUID(),false,ResourceLocation.parse("minecraft:none"))).toList();
+        var residentObservation=new SettlementObservation(stats,residentFacts,5,0);
         try(var config=new TestServerConfig();var data=mockStatic(HometownSavedData.class);
             var scanner=mockStatic(SettlementScanner.class);var housing=mockStatic(HousingScanner.class);
             var food=mockStatic(FoodScanner.class)) {
             data.when(()->HometownSavedData.get(server)).thenReturn(store);
-            scanner.when(()->SettlementScanner.scan(level,town,32)).thenReturn(stats);
+            scanner.when(()->SettlementScanner.observe(level,town,32)).thenReturn(residentObservation);
             housing.when(()->HousingScanner.observe(level,town,stats,32)).thenReturn(new HousingScanner.Observation(new HousingSnapshot(5,0,0,0,0,0,0,0,0,true),Set.of()));
             var reserves=FoodRules.DEFAULT.snapshot(5,0,0,0,0);
             food.when(()->FoodScanner.observe(eq(level),eq(town),eq(stats),eq(32),any())).thenReturn(new FoodObservation(reserves,List.of()));
@@ -46,17 +50,17 @@ class LedgerObservationTest {
             assertEquals(reserves,first.food(),"M3 one-pass observation must preserve the protected Reserves snapshot");
             assertEquals(100,first.metadata().observedGameTime());
             assertEquals(first.metadata(),open(bob,component).snapshot().metadata());
-            scanner.verify(()->SettlementScanner.scan(level,town,32),times(1));
+            scanner.verify(()->SettlementScanner.observe(level,town,32),times(1));
             when(level.getGameTime()).thenReturn(139L);
             assertEquals(first.metadata(),open(alice,component).snapshot().metadata());
-            scanner.verify(()->SettlementScanner.scan(level,town,32),times(1));
+            scanner.verify(()->SettlementScanner.observe(level,town,32),times(1));
             when(level.getGameTime()).thenReturn(140L);
             var fresh=open(alice,component).snapshot();assertNotEquals(first.metadata().requestGeneration(),fresh.metadata().requestGeneration());
-            assertEquals(140,fresh.metadata().observedGameTime());scanner.verify(()->SettlementScanner.scan(level,town,32),times(2));
+            assertEquals(140,fresh.metadata().observedGameTime());scanner.verify(()->SettlementScanner.observe(level,town,32),times(2));
             when(level.getGameTime()).thenReturn(200L);
             var page=TownLedgerService.respond(alice,new RequestTownLedgerPayload(InteractionHand.MAIN_HAND,1,2,fresh.metadata().requestGeneration()),Items.WRITTEN_BOOK,component);
             assertEquals(1,page.snapshot().residentPage());assertEquals("V4",page.snapshot().residents().getFirst().name());
-            assertEquals(fresh.metadata(),page.snapshot().metadata());scanner.verify(()->SettlementScanner.scan(level,town,32),times(2));
+            assertEquals(fresh.metadata(),page.snapshot().metadata());scanner.verify(()->SettlementScanner.observe(level,town,32),times(2));
             assertEquals(TownLedgerSnapshotPayload.Error.WAIT,TownLedgerService.respond(alice,
                 new RequestTownLedgerPayload(InteractionHand.MAIN_HAND,0,3,first.metadata().requestGeneration()),Items.WRITTEN_BOOK,component).error());
             TownLedgerService.respond(alice,new RequestTownLedgerPayload(InteractionHand.MAIN_HAND,-1,4,fresh.metadata().requestGeneration()),Items.WRITTEN_BOOK,component);
