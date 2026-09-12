@@ -42,6 +42,7 @@ class LedgerObservationTest {
             var food=mockStatic(FoodScanner.class)) {
             data.when(()->HometownSavedData.get(server)).thenReturn(store);
             scanner.when(()->SettlementScanner.observe(level,town,32)).thenReturn(residentObservation);
+            scanner.when(()->SettlementScanner.scan(level,town,32)).thenReturn(stats);
             housing.when(()->HousingScanner.observe(level,town,stats,32)).thenReturn(new HousingScanner.Observation(new HousingSnapshot(5,0,0,0,0,0,0,0,0,true),Set.of()));
             var reserves=FoodRules.DEFAULT.snapshot(5,0,0,0,0);
             food.when(()->FoodScanner.observe(eq(level),eq(town),eq(stats),eq(32),any())).thenReturn(new FoodObservation(reserves,List.of()));
