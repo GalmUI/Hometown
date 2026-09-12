@@ -25,15 +25,15 @@ class HistoryTrackerTest {
     }
 
     @Test void H03_H04_confirmationKeepsOriginalWindowAndReplacementRestartsIt(){
-        var f=fixture();f.advance(1,0,10,10,FoodSnapshot.FoodSecurityState.STABLE,ProsperitySnapshot.Band.STARTING,10,FP);f.data.setDirty(false);
-        f.advance(2,100,11,10,FoodSnapshot.FoodSecurityState.STABLE,ProsperitySnapshot.Band.STARTING,10,FP);
+        var f=fixture();f.advance(1,0,10,20,FoodSnapshot.FoodSecurityState.STABLE,ProsperitySnapshot.Band.STARTING,10,FP);f.data.setDirty(false);
+        f.advance(2,100,11,20,FoodSnapshot.FoodSecurityState.STABLE,ProsperitySnapshot.Band.STARTING,10,FP);
         assertFalse(f.data.isDirty());assertEquals(1,f.tracker.candidates(f.town.id(),SETTINGS).size());
-        f.advance(3,250,11,10,FoodSnapshot.FoodSecurityState.STABLE,ProsperitySnapshot.Band.STARTING,10,FP);
+        f.advance(3,250,11,20,FoodSnapshot.FoodSecurityState.STABLE,ProsperitySnapshot.Band.STARTING,10,FP);
         assertEquals(1,f.data.history(f.town.id()).events().size(),"too soon remains candidate");
-        f.advance(4,260,12,10,FoodSnapshot.FoodSecurityState.STABLE,ProsperitySnapshot.Band.STARTING,10,FP);
-        f.advance(5,459,12,10,FoodSnapshot.FoodSecurityState.STABLE,ProsperitySnapshot.Band.STARTING,10,FP);
+        f.advance(4,260,12,20,FoodSnapshot.FoodSecurityState.STABLE,ProsperitySnapshot.Band.STARTING,10,FP);
+        f.advance(5,459,12,20,FoodSnapshot.FoodSecurityState.STABLE,ProsperitySnapshot.Band.STARTING,10,FP);
         assertEquals(1,f.data.history(f.town.id()).events().size());
-        f.advance(6,460,12,10,FoodSnapshot.FoodSecurityState.STABLE,ProsperitySnapshot.Band.STARTING,10,FP);
+        f.advance(6,460,12,20,FoodSnapshot.FoodSecurityState.STABLE,ProsperitySnapshot.Band.STARTING,10,FP);
         var event=last(f,HistoryEvent.Type.POPULATION_CHANGED);assertEquals(10,event.arguments().get("previousPopulation").asInt());assertEquals(12,event.arguments().get("newPopulation").asInt());
     }
 
