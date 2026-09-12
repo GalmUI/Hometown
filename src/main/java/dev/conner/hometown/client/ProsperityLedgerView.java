@@ -39,7 +39,7 @@ final class ProsperityLedgerView {
             }
         } else if(p.status()==ProsperitySnapshot.Status.COMPLETE) {
             line(g,font,Component.translatable("hometown.prosperity.weight_total",p.totalEnabledWeight()),x,y+72,column,muted);
-            line(g,font,Component.translatable("hometown.prosperity.authoritative"),x,y+88,column,muted);
+            g.drawWordWrap(font,Component.translatable("hometown.prosperity.authoritative"),x,y+88,column,muted);
         } else {
             line(g,font,Component.translatable("hometown.prosperity.no_index"),x,y+72,column,muted);
         }
@@ -53,7 +53,8 @@ final class ProsperityLedgerView {
             int color=ink;
             if(c.status()==ProsperitySnapshot.ComponentStatus.COMPLETE) {
                 detail=Component.translatable("hometown.prosperity.component.complete",
-                        round(c.normalizedValue().orElseThrow()),c.configuredWeight(),format(c.weightedContribution().orElseThrow()));
+                        round(c.normalizedValue().orElseThrow()),formatWeightShare(c.configuredWeight(),p.totalEnabledWeight()),
+                        formatIndexPoints(c.weightedContribution().orElseThrow(),p.totalEnabledWeight()));
             } else if(c.status()==ProsperitySnapshot.ComponentStatus.EXCLUDED) {
                 detail=Component.translatable("hometown.prosperity.component.excluded");color=muted;
             } else {
@@ -67,8 +68,17 @@ final class ProsperityLedgerView {
     static Component name(ProsperitySnapshot.ComponentType type) {
         return Component.translatable("hometown.prosperity.component_name."+type.name().toLowerCase(Locale.ROOT));
     }
+    static String formatWeightShare(int configuredWeight,int totalEnabledWeight){
+        if(totalEnabledWeight<=0)throw new IllegalArgumentException("Prosperity enabled weight must be positive");
+        double value=100.0*configuredWeight/totalEnabledWeight;
+        double whole=Math.rint(value);
+        return (Math.abs(value-whole)<1.0e-9?String.format(Locale.ROOT,"%.0f",whole):String.format(Locale.ROOT,"%.1f",value))+"%";
+    }
+    static String formatIndexPoints(double weightedContribution,int totalEnabledWeight){
+        if(totalEnabledWeight<=0)throw new IllegalArgumentException("Prosperity enabled weight must be positive");
+        return String.format(Locale.ROOT,"%.1f pts",weightedContribution/totalEnabledWeight);
+    }
     private static int round(double value){return (int)Math.floor(value+0.5d);}
-    private static String format(double value){return String.format(Locale.ROOT,"%.1f",value);}
     private static void line(GuiGraphics g,Font font,Component text,int x,int y,int width,int color){
         String value=text.getString();String shown=font.width(value)>width?font.plainSubstrByWidth(value,Math.max(0,width-font.width("…")))+"…":value;
         g.drawString(font,shown,x,y,color,false);
