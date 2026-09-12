@@ -190,9 +190,13 @@ class TownLedgerScreenTest {
                     var subsection = draw(screen);
                     if (section != DevelopmentSection.HOUSING && section != DevelopmentSection.FOOD
                             && section != DevelopmentSection.SAFETY && section != DevelopmentSection.COMFORT
-                            && section != DevelopmentSection.COMMERCE) {
+                            && section != DevelopmentSection.COMMERCE && section != DevelopmentSection.PROSPERITY) {
                         assertTrue(subsection.contains("This aspect of town development is not yet tracked."));
                         assertFalse(subsection.stream().anyMatch(t -> t.startsWith("Capacity:") || t.startsWith("Privacy:")));
+                    }
+                    if (section == DevelopmentSection.PROSPERITY) {
+                        assertTrue(subsection.contains("Prosperity"));
+                        assertTrue(subsection.stream().anyMatch(t -> t.contains("This aspect of town development is not yet tracked")));
                     }
                     if (section == DevelopmentSection.COMFORT) {
                         assertTrue(subsection.contains("Comfort"));
@@ -233,111 +237,38 @@ class TownLedgerScreenTest {
                             assertTrue(partialText.contains(known>0?"At least 5.3 Days":"At least 0.0 Days"));assertFalse(partialText.contains("EMPTY"));
                             assertTrue(partialText.contains("1 chunk unavailable"));
                         }
-                        var incompletePopulation=dev.conner.hometown.food.FoodScanDiagnostics.empty(
-                            java.util.Set.of(dev.conner.hometown.food.FoodScanReason.POPULATION_INCOMPLETE),false);
-                        foodField.set(screen,snapshot().withFood(dev.conner.hometown.food.FoodRules.DEFAULT.snapshot(
-                            10,1,1,1,1060,dev.conner.hometown.food.FoodScanStatus.PARTIAL,incompletePopulation)));
-                        var denominatorText=draw(screen);
-                        assertFalse(denominatorText.stream().anyMatch(t->t.contains("At least")));
-                        var noBar=mock(GuiGraphics.class);screen.render(noBar,0,0,0);
-                        assertFalse(mockingDetails(noBar).getInvocations().stream().anyMatch(call->call.getMethod().getName().equals("fill") && (int)call.getArgument(4)==0xFF817644));
-                        foodField.set(screen,snapshot());
+                        var incompletePopulation=dev.conner.hometown.food.FoodScanDiagnostics.empty(java.util.Set.of(dev.conner.hometown.food.FoodScanReason.POPULATION_INCOMPLETE),false);
+                        foodField.set(screen,snapshot().withFood(dev.conner.hometown.food.FoodRules.DEFAULT.snapshot(10,1,1,1,1060,dev.conner.hometown.food.FoodScanStatus.PARTIAL,incompletePopulation)));
+                        var denominatorText=draw(screen);assertFalse(denominatorText.stream().anyMatch(t->t.contains("At least")));
+                        var noBar=mock(GuiGraphics.class);screen.render(noBar,0,0,0);assertFalse(mockingDetails(noBar).getInvocations().stream().anyMatch(call->call.getMethod().getName().equals("fill") && (int)call.getArgument(4)==0xFF817644));foodField.set(screen,snapshot());
                     }
                     if (section == DevelopmentSection.SAFETY) {
                         var field=TownLedgerScreen.class.getDeclaredField("snapshot");field.setAccessible(true);
-                        for(int mode=0;mode<5;mode++) {
-                            var base=snapshot();field.set(screen,base.withSafety(safetyFixture(base,mode)));
-                            var safetyText=draw(screen);
-                            assertTrue(safetyText.contains("Safety"));assertTrue(safetyText.contains("Residential Lighting"));
-                            assertFalse(safetyText.contains("Safe"));
-                            if(mode==0)assertTrue(safetyText.contains("89%"));
-                            if(mode==1)assertTrue(safetyText.stream().anyMatch(t->t.startsWith("Observed Lighting:")));
-                            if(mode==2||mode==4)assertTrue(safetyText.contains("N/A"));
-                            if(mode==3)assertTrue(safetyText.contains("Disabled"));
-                            if(mode>=2) {
-                                var noBar=mock(GuiGraphics.class);screen.render(noBar,0,0,0);
-                                assertFalse(mockingDetails(noBar).getInvocations().stream().anyMatch(call->call.getMethod().getName().equals("fill") && (int)call.getArgument(4)==0xFF817644));
-                            }
-                        }
+                        for(int mode=0;mode<5;mode++) {var base=snapshot();field.set(screen,base.withSafety(safetyFixture(base,mode)));var safetyText=draw(screen);assertTrue(safetyText.contains("Safety"));assertTrue(safetyText.contains("Residential Lighting"));assertFalse(safetyText.contains("Safe"));if(mode==0)assertTrue(safetyText.contains("89%"));if(mode==1)assertTrue(safetyText.stream().anyMatch(t->t.startsWith("Observed Lighting:")));if(mode==2||mode==4)assertTrue(safetyText.contains("N/A"));if(mode==3)assertTrue(safetyText.contains("Disabled"));if(mode>=2) {var noBar=mock(GuiGraphics.class);screen.render(noBar,0,0,0);assertFalse(mockingDetails(noBar).getInvocations().stream().anyMatch(call->call.getMethod().getName().equals("fill") && (int)call.getArgument(4)==0xFF817644));}}
                         field.set(screen,snapshot());
                     }
-                    var g = mock(GuiGraphics.class); screen.render(g,0,0,0);
-                    long highlights = mockingDetails(g).getInvocations().stream().filter(call -> call.getMethod().getName().equals("fill")
-                            && (int)call.getArgument(4) == 0xFF99513B && (int)call.getArgument(1) == button.getY()+button.getHeight()-4).count();
-                    assertEquals(1,highlights);
+                    var g = mock(GuiGraphics.class); screen.render(g,0,0,0);long highlights = mockingDetails(g).getInvocations().stream().filter(call -> call.getMethod().getName().equals("fill")&& (int)call.getArgument(4) == 0xFF99513B && (int)call.getArgument(1) == button.getY()+button.getHeight()-4).count();assertEquals(1,highlights);
                 }
                 assertEquals(sentBeforeNavigation,requests.size(),"Subnavigation must not request a new snapshot");
-                ((Button)screen.children().get(0)).onPress();
-                for(int index=7;index<13;index++) assertFalse(((Button)screen.children().get(index)).visible);
-                ((Button)screen.children().get(2)).onPress();
-                ((Button)screen.children().get(7)).onPress();
-                var snapshotField = TownLedgerScreen.class.getDeclaredField("snapshot"); snapshotField.setAccessible(true);
-                var unknown = dev.conner.hometown.housing.HousingSnapshot.unavailable(10, 9);
-                snapshotField.set(screen, snapshot().withHousing(unknown));
-                var missing = draw(screen);
-                assertTrue(missing.contains("SCAN INCOMPLETE"));
-                assertFalse(missing.stream().anyMatch(t -> t.startsWith("Enclosed beds:")));
-                assertTrue(missing.contains("Capacity: N/A")); assertTrue(missing.contains("Privacy: N/A"));
-                var empty = new dev.conner.hometown.housing.HousingSnapshot(0,0,0,0,0,0,0,0,0,true);
-                snapshotField.set(screen, snapshot().withHousing(empty));
-                assertTrue(draw(screen).contains("Capacity: N/A"));
-                var baseline = new dev.conner.hometown.housing.HousingSnapshot(10,9,9,0,8,7,1,2,0,true);
-                snapshotField.set(screen, snapshot().withHousing(baseline));
-                var crowded = draw(screen);
-                assertTrue(crowded.contains("Capacity: 90%")); assertTrue(crowded.contains("SHORTAGE"));
-                assertTrue(crowded.contains("Unhoused: 1"));
-                snapshotField.set(screen, snapshot());
-                ((Button)screen.children().get(3)).onPress();
-                var history = draw(screen);
-                assertTrue(history.contains("Day 18")); assertTrue(history.contains("Dured was founded by GalrUI."));
-                assertFalse(screen.isPauseScreen());
+                ((Button)screen.children().get(0)).onPress();for(int index=7;index<13;index++) assertFalse(((Button)screen.children().get(index)).visible);
+                ((Button)screen.children().get(2)).onPress();((Button)screen.children().get(7)).onPress();var snapshotField = TownLedgerScreen.class.getDeclaredField("snapshot"); snapshotField.setAccessible(true);var unknown = dev.conner.hometown.housing.HousingSnapshot.unavailable(10, 9);snapshotField.set(screen, snapshot().withHousing(unknown));var missing = draw(screen);assertTrue(missing.contains("SCAN INCOMPLETE"));assertFalse(missing.stream().anyMatch(t -> t.startsWith("Enclosed beds:")));assertTrue(missing.contains("Capacity: N/A")); assertTrue(missing.contains("Privacy: N/A"));
+                var empty = new dev.conner.hometown.housing.HousingSnapshot(0,0,0,0,0,0,0,0,0,true);snapshotField.set(screen, snapshot().withHousing(empty));assertTrue(draw(screen).contains("Capacity: N/A"));var baseline = new dev.conner.hometown.housing.HousingSnapshot(10,9,9,0,8,7,1,2,0,true);snapshotField.set(screen, snapshot().withHousing(baseline));var crowded = draw(screen);assertTrue(crowded.contains("Capacity: 90%")); assertTrue(crowded.contains("SHORTAGE"));assertTrue(crowded.contains("Unhoused: 1"));snapshotField.set(screen, snapshot());
+                ((Button)screen.children().get(3)).onPress();var history = draw(screen);assertTrue(history.contains("Day 18")); assertTrue(history.contains("Dured was founded by GalrUI."));assertFalse(screen.isPauseScreen());
             }
         } finally { Language.inject(original); }
     }
 
     @Test void residentPaginationSurvivesDevelopmentSubnavigation() throws Exception {
         try (var packets = mockStatic(PacketDistributor.class)) {
-            var requests = new ArrayList<RequestTownLedgerPayload>();
-            packets.when(() -> PacketDistributor.sendToServer(any(CustomPacketPayload.class)))
-                    .thenAnswer(call -> { requests.add(call.getArgument(0)); return null; });
-            var town = new Settlement(UUID.randomUUID(), "Dured", Level.OVERWORLD, new BlockPos(8,64,8), 16,
-                    UUID.randomUUID(), "Founder", 0);
-            var stats = new SettlementStats(5,3,0,0,SettlementStats.Availability.COMPLETE,
-                    java.util.Collections.nCopies(5,new ResidentSummary("Resident","hometown.ledger.unemployed",false)));
-            var screen = screen(480,270);
-            screen.requestPage(0);
-            screen.receive(new TownLedgerSnapshotPayload(requests.getLast().requestId(),
-                    TownLedgerSnapshot.of(town,stats,TownLedgerSnapshot.BellState.PRESENT,0),TownLedgerSnapshotPayload.Error.NONE));
-            ((Button)screen.children().get(1)).onPress();
-            Button next = (Button)screen.children().get(5), previous = (Button)screen.children().get(4);
-            assertTrue(next.visible && next.active); next.onPress();
-            assertEquals(1,requests.getLast().page());
-            screen.receive(new TownLedgerSnapshotPayload(requests.getLast().requestId(),
-                    TownLedgerSnapshot.of(town,stats,TownLedgerSnapshot.BellState.PRESENT,1),TownLedgerSnapshotPayload.Error.NONE));
-            assertTrue(previous.active); assertFalse(next.active);
-            int count = requests.size();
-            ((Button)screen.children().get(2)).onPress();
-            ((Button)screen.children().get(8)).onPress();
-            assertFalse(previous.visible);
-            ((Button)screen.children().get(1)).onPress();
-            assertEquals(count,requests.size()); assertTrue(previous.visible && previous.active);
-            previous.onPress(); assertEquals(0,requests.getLast().page());
+            var requests = new ArrayList<RequestTownLedgerPayload>();packets.when(() -> PacketDistributor.sendToServer(any(CustomPacketPayload.class))).thenAnswer(call -> { requests.add(call.getArgument(0)); return null; });
+            var town = new Settlement(UUID.randomUUID(), "Dured", Level.OVERWORLD, new BlockPos(8,64,8), 16,UUID.randomUUID(), "Founder", 0);var stats = new SettlementStats(5,3,0,0,SettlementStats.Availability.COMPLETE,java.util.Collections.nCopies(5,new ResidentSummary("Resident","hometown.ledger.unemployed",false)));
+            var screen = screen(480,270);screen.requestPage(0);screen.receive(new TownLedgerSnapshotPayload(requests.getLast().requestId(),TownLedgerSnapshot.of(town,stats,TownLedgerSnapshot.BellState.PRESENT,0),TownLedgerSnapshotPayload.Error.NONE));((Button)screen.children().get(1)).onPress();Button next = (Button)screen.children().get(5), previous = (Button)screen.children().get(4);assertTrue(next.visible && next.active); next.onPress();assertEquals(1,requests.getLast().page());screen.receive(new TownLedgerSnapshotPayload(requests.getLast().requestId(),TownLedgerSnapshot.of(town,stats,TownLedgerSnapshot.BellState.PRESENT,1),TownLedgerSnapshotPayload.Error.NONE));assertTrue(previous.active); assertFalse(next.active);int count = requests.size();((Button)screen.children().get(2)).onPress();((Button)screen.children().get(8)).onPress();assertFalse(previous.visible);((Button)screen.children().get(1)).onPress();assertEquals(count,requests.size()); assertTrue(previous.visible && previous.active);previous.onPress(); assertEquals(0,requests.getLast().page());
         }
     }
 
     @Test void staleResponsesAreIgnoredAndUnknownLedgerRendersAnError() throws Exception {
         try (var packets = mockStatic(PacketDistributor.class)) {
-            var requests = new ArrayList<RequestTownLedgerPayload>();
-            packets.when(() -> PacketDistributor.sendToServer(any(CustomPacketPayload.class)))
-                    .thenAnswer(call -> { requests.add(call.getArgument(0)); return null; });
-            var screen = screen(320, 240);
-            screen.requestPage(0); int old = requests.getLast().requestId();
-            screen.requestPage(1); int current = requests.getLast().requestId();
-            screen.receive(new TownLedgerSnapshotPayload(old, snapshot(), TownLedgerSnapshotPayload.Error.NONE));
-            assertFalse(draw(screen).contains("Dured"));
-            screen.receive(new TownLedgerSnapshotPayload(current, null, TownLedgerSnapshotPayload.Error.UNKNOWN));
-            assertTrue(draw(screen).stream().anyMatch(s -> s.contains("hometown.ledger.unknown")));
-            assertTrue(screen.children().stream().anyMatch(widget -> widget instanceof Button button && button.visible && button.getMessage().getString().contains("hometown.ledger.retry")));
+            var requests = new ArrayList<RequestTownLedgerPayload>();packets.when(() -> PacketDistributor.sendToServer(any(CustomPacketPayload.class))).thenAnswer(call -> { requests.add(call.getArgument(0)); return null; });var screen = screen(320, 240);screen.requestPage(0); int old = requests.getLast().requestId();screen.requestPage(1); int current = requests.getLast().requestId();screen.receive(new TownLedgerSnapshotPayload(old, snapshot(), TownLedgerSnapshotPayload.Error.NONE));assertFalse(draw(screen).contains("Dured"));screen.receive(new TownLedgerSnapshotPayload(current, null, TownLedgerSnapshotPayload.Error.UNKNOWN));assertTrue(draw(screen).stream().anyMatch(s -> s.contains("hometown.ledger.unknown")));assertTrue(screen.children().stream().anyMatch(widget -> widget instanceof Button button && button.visible && button.getMessage().getString().contains("hometown.ledger.retry")));
         }
     }
 }
