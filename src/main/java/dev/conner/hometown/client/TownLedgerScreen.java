@@ -1,8 +1,6 @@
 package dev.conner.hometown.client;
 
-import dev.conner.hometown.network.RequestTownLedgerPayload;
-import dev.conner.hometown.network.TownLedgerSnapshotPayload;
-import dev.conner.hometown.network.FoodM3SnapshotPayload;
+import dev.conner.hometown.network.*;
 import dev.conner.hometown.network.data.TownLedgerSnapshot;
 import dev.conner.hometown.settlement.SettlementStats;
 import net.minecraft.client.gui.GuiGraphics;
@@ -21,6 +19,7 @@ public final class TownLedgerScreen extends Screen {
     private TownLedgerSnapshot snapshot;
     private dev.conner.hometown.food.FoodVarietySnapshot foodVariety;
     private dev.conner.hometown.food.FoodGrowingSnapshot foodGrowing;
+    private dev.conner.hometown.commerce.CommerceSnapshot commerce;
     private TownLedgerSnapshotPayload.Error error = TownLedgerSnapshotPayload.Error.NONE;
     private int requestId, requestedPage, activeTab, left, top, bookWidth, bookHeight, waitTicks;
     private boolean waiting;
@@ -31,7 +30,7 @@ public final class TownLedgerScreen extends Screen {
     private int safetyPage;
     private int comfortRoomPage;
     private boolean comfortRoomDetails;
-    private int foodSection, foodGrowingPage;
+    private int foodSection, foodGrowingPage, commercePage;
 
     public TownLedgerScreen(InteractionHand hand) {
         super(Component.translatable("item.hometown.town_ledger"));
@@ -39,7 +38,6 @@ public final class TownLedgerScreen extends Screen {
     }
 
     @Override protected void init() {
-        // Native GUI pixels. Small viewports change layout bounds, never the pose/font scale.
         bookWidth = Math.min(BOOK_WIDTH, width - 12);
         bookHeight = Math.min(BOOK_HEIGHT, height - 44);
         left = (width - bookWidth) / 2;
@@ -82,6 +80,7 @@ public final class TownLedgerScreen extends Screen {
                         activeDevelopment = section;
                         if (section != DevelopmentSection.SAFETY) safetyPage = 0;
                         if (section != DevelopmentSection.COMFORT) { comfortRoomDetails = false; comfortRoomPage = 0; }
+                        if (section != DevelopmentSection.COMMERCE) commercePage = 0;
                         updateButtons();
                     }, () -> activeDevelopment == section);
             if (font.width(label.getString()) > buttonWidth - 2)
@@ -109,11 +108,13 @@ public final class TownLedgerScreen extends Screen {
     }
 
     private int foodGrowingPages(){return foodGrowing==null?1:Math.max(1,(foodGrowing.families().size()+3)/4);}
+    private int commercePages(){return commerce==null?1:CommerceLedgerView.pages(commerce);}
     private void previousPage() {
         if (activeTab != 2) { requestPage(snapshot.residentPage() - 1); return; }
         if (activeDevelopment == DevelopmentSection.SAFETY) safetyPage--;
         else if (activeDevelopment == DevelopmentSection.COMFORT && comfortRoomDetails) comfortRoomPage--;
         else if (activeDevelopment == DevelopmentSection.FOOD && foodSection==2) foodGrowingPage--;
+        else if (activeDevelopment == DevelopmentSection.COMMERCE) commercePage--;
         updateButtons();
     }
 
@@ -122,11 +123,12 @@ public final class TownLedgerScreen extends Screen {
         if (activeDevelopment == DevelopmentSection.SAFETY) safetyPage++;
         else if (activeDevelopment == DevelopmentSection.COMFORT && comfortRoomDetails) comfortRoomPage++;
         else if (activeDevelopment == DevelopmentSection.FOOD && foodSection==2) foodGrowingPage++;
+        else if (activeDevelopment == DevelopmentSection.COMMERCE) commercePage++;
         updateButtons();
     }
 
     public void requestPage(int page) {
-        if(snapshot==null){foodVariety=null;foodGrowing=null;foodGrowingPage=0;}
+        if(snapshot==null){foodVariety=null;foodGrowing=null;foodGrowingPage=0;commerce=null;commercePage=0;}
         requestId = ++nextRequest;
         requestedPage = Math.max(0, page);
         waiting = true;
@@ -146,9 +148,9 @@ public final class TownLedgerScreen extends Screen {
             safetyPage = Math.min(safetyPage, safetyPages() - 1);
             comfortRoomPage = Math.min(comfortRoomPage, Math.max(0, snapshot.comfort().roomRecords().size() - 1));
             if(foodVariety!=null&&!foodVariety.metadata().equals(snapshot.metadata())){foodVariety=null;foodGrowing=null;foodGrowingPage=0;}
+            if(commerce!=null&&!commerce.metadata().equals(snapshot.metadata())){commerce=null;commercePage=0;}
         }
-        // Do not keep showing another town's data after an invalid/switched held item.
-        if (error != TownLedgerSnapshotPayload.Error.NONE) { snapshot = null;foodVariety=null;foodGrowing=null;foodGrowingPage=0; }
+        if (error != TownLedgerSnapshotPayload.Error.NONE) { snapshot = null;foodVariety=null;foodGrowing=null;foodGrowingPage=0;commerce=null;commercePage=0; }
         updateButtons();
     }
     public void receiveFoodM3(FoodM3SnapshotPayload payload) {
@@ -156,12 +158,17 @@ public final class TownLedgerScreen extends Screen {
         if(snapshot!=null&&!payload.variety().metadata().equals(snapshot.metadata()))return;
         foodVariety=payload.variety();foodGrowing=payload.growing();foodGrowingPage=Math.min(foodGrowingPage,foodGrowingPages()-1);updateButtons();
     }
+    public void receiveCommerce(CommerceSnapshotPayload payload) {
+        if(payload.requestId()!=requestId)return;
+        if(snapshot!=null&&!payload.commerce().metadata().equals(snapshot.metadata()))return;
+        commerce=payload.commerce();commercePage=Math.min(commercePage,commercePages()-1);updateButtons();
+    }
 
     @Override public void tick() {
         if (waiting && ++waitTicks >= 200) {
             waiting = false;
             error = TownLedgerSnapshotPayload.Error.FAILED;
-            snapshot = null;foodVariety=null;foodGrowing=null;foodGrowingPage=0;
+            snapshot = null;foodVariety=null;foodGrowing=null;foodGrowingPage=0;commerce=null;commercePage=0;
             updateButtons();
         }
     }
@@ -173,17 +180,20 @@ public final class TownLedgerScreen extends Screen {
         boolean comfortPaging = activeTab == 2 && activeDevelopment == DevelopmentSection.COMFORT && comfortRoomDetails
                 && snapshot != null && snapshot.comfort().roomRecords().size() > 1;
         boolean growingPaging=activeTab==2&&activeDevelopment==DevelopmentSection.FOOD&&foodSection==2&&foodGrowing!=null&&foodGrowingPages()>1;
-        previous.visible = next.visible = paging || safetyPaging || comfortPaging || growingPaging;
+        boolean commercePaging=activeTab==2&&activeDevelopment==DevelopmentSection.COMMERCE&&commerce!=null&&commercePages()>1;
+        previous.visible = next.visible = paging || safetyPaging || comfortPaging || growingPaging || commercePaging;
         previous.active = !waiting && ((paging && snapshot.residentPage() > 0)
-                || (safetyPaging && safetyPage > 0) || (comfortPaging && comfortRoomPage > 0) || (growingPaging&&foodGrowingPage>0));
+                || (safetyPaging && safetyPage > 0) || (comfortPaging && comfortRoomPage > 0) || (growingPaging&&foodGrowingPage>0)
+                || (commercePaging&&commercePage>0));
         next.active = !waiting && ((paging && snapshot.residentPage() + 1 < snapshot.residentPages())
                 || (safetyPaging && safetyPage + 1 < safetyPages())
-                || (comfortPaging && comfortRoomPage + 1 < snapshot.comfort().roomRecords().size()) || (growingPaging&&foodGrowingPage+1<foodGrowingPages()));
+                || (comfortPaging && comfortRoomPage + 1 < snapshot.comfort().roomRecords().size()) || (growingPaging&&foodGrowingPage+1<foodGrowingPages())
+                || (commercePaging&&commercePage+1<commercePages()));
         retry.visible = !waiting && error != TownLedgerSnapshotPayload.Error.NONE;
         developmentButtons.forEach(button -> button.visible = activeTab == 2 && snapshot != null);
-        boolean comfort = activeTab == 2 && activeDevelopment == DevelopmentSection.COMFORT && snapshot != null;
-        comfortDetails.visible = comfort && !comfortRoomDetails && !snapshot.comfort().roomRecords().isEmpty();
-        comfortBack.visible = comfort && comfortRoomDetails;
+        boolean comfortVisible = activeTab == 2 && activeDevelopment == DevelopmentSection.COMFORT && snapshot != null;
+        comfortDetails.visible = comfortVisible && !comfortRoomDetails && !snapshot.comfort().roomRecords().isEmpty();
+        comfortBack.visible = comfortVisible && comfortRoomDetails;
         boolean food=activeTab==2&&activeDevelopment==DevelopmentSection.FOOD&&snapshot!=null;
         foodReserves.visible=food;foodVarietyButton.visible=food;foodGrowingButton.visible=food;
     }
@@ -196,8 +206,6 @@ public final class TownLedgerScreen extends Screen {
 
     @Override public void render(GuiGraphics graphics, int mouseX, int mouseY, float partialTick) {
         hoveredText = null;
-        // Screen.render invokes renderBackground before rendering the bookmark widgets.
-        // Calling it after drawing pages would blur the finished pages a second time.
         super.render(graphics, mouseX, mouseY, partialTick);
         if (hoveredText != null) graphics.renderTooltip(font, hoveredText, mouseX, mouseY);
     }
@@ -290,12 +298,18 @@ public final class TownLedgerScreen extends Screen {
         if (activeDevelopment == DevelopmentSection.FOOD) { food(g,column,mx,my); return; }
         if (activeDevelopment == DevelopmentSection.SAFETY) { safety(g,column,mx,my); return; }
         if (activeDevelopment == DevelopmentSection.COMFORT) { comfort(g,column,mx,my); return; }
+        if (activeDevelopment == DevelopmentSection.COMMERCE) { commerce(g,column,mx,my); return; }
         if (activeDevelopment != DevelopmentSection.HOUSING) {
             line(g, Component.translatable(activeDevelopment.translationKey()), left + 18, top + 60, column, INK, mx, my);
             g.drawWordWrap(font, Component.translatable("hometown.development.placeholder"), left + 18, top + 82, column, MUTED);
             return;
         }
         housing(g, column, mx, my);
+    }
+
+    private void commerce(GuiGraphics g,int column,int mx,int my){
+        if(commerce==null){line(g,Component.translatable("hometown.commerce.title"),left+18,top+60,column,INK,mx,my);line(g,Component.translatable("hometown.commerce.waiting"),left+18,top+82,bookWidth-36,MUTED,mx,my);return;}
+        CommerceLedgerView.render(g,font,commerce,commercePage,left+18,left+bookWidth/2+18,top+58,column,INK,MUTED,WARNING);
     }
 
     private int safetyPages() {
@@ -422,7 +436,6 @@ public final class TownLedgerScreen extends Screen {
             var reason=new java.util.TreeMap<>(c.reasonCounts()).firstKey();
             line(g,Component.translatable("hometown.comfort.reason."+reason.name().toLowerCase(java.util.Locale.ROOT)),x,y+102,column,WARNING,mx,my);
         }
-
         if(comfortRoomDetails) comfortRoom(g,c,right,y,column,mx,my);
         else comfortCategories(g,c,right,y,column,mx,my);
     }
