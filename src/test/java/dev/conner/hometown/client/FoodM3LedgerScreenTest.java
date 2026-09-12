@@ -61,7 +61,9 @@ class FoodM3LedgerScreenTest {
         Language.inject(new Language(){public String getOrDefault(String k,String f){return translations.has(k)?translations.get(k).getAsString():original.getOrDefault(k,f);}public boolean has(String k){return translations.has(k)||original.has(k);}public boolean isDefaultRightToLeft(){return false;}public FormattedCharSequence getVisualOrder(FormattedText t){return FormattedCharSequence.forward(t.getString(),Style.EMPTY);}});
         try(var packets=mockStatic(PacketDistributor.class)){
             var requests=new ArrayList<RequestTownLedgerPayload>();packets.when(()->PacketDistributor.sendToServer(any(CustomPacketPayload.class))).thenAnswer(c->{if(c.getArgument(0) instanceof RequestTownLedgerPayload r)requests.add(r);return null;});
-            var screen=screen(),base=base();screen.requestPage(0);int requestId=requests.getLast().requestId();screen.receive(new TownLedgerSnapshotPayload(requestId,base,TownLedgerSnapshotPayload.Error.NONE));screen.receiveFoodM3(new FoodM3SnapshotPayload(requestId,variety(base),growing(base)));
+            var screen=screen();
+            var base=base();
+            screen.requestPage(0);int requestId=requests.getLast().requestId();screen.receive(new TownLedgerSnapshotPayload(requestId,base,TownLedgerSnapshotPayload.Error.NONE));screen.receiveFoodM3(new FoodM3SnapshotPayload(requestId,variety(base),growing(base)));
             button(screen,"Development").onPress();button(screen,"Food").onPress();int before=requests.size();
             var reserves=draw(screen);assertTrue(reserves.contains("Food Security"));assertTrue(reserves.contains("Reserves"));assertTrue(reserves.contains("Variety"));assertTrue(reserves.contains("Growing"));
             button(screen,"Variety").onPress();var variety=draw(screen);assertTrue(variety.contains("Food Variety"));assertTrue(variety.contains("VARIED"));assertTrue(variety.contains("60%"));assertTrue(variety.contains("Food Groups: 3 / 5"));assertTrue(variety.contains("Stored Food Groups — Nutrition"));
