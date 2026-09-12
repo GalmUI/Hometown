@@ -54,7 +54,9 @@ public record CommerceSnapshot(ObservationMetadata metadata, boolean enabled, St
         if(reasonSize<0||reasonSize>Reason.values().length)throw new IllegalArgumentException("Invalid Commerce reason count");
         var reasons=new EnumMap<Reason,Integer>(Reason.class);for(int i=0;i<reasonSize;i++){var reason=b.readEnum(Reason.class);int count=b.readVarInt();if(count<=0||reasons.put(reason,count)!=null)throw new IllegalArgumentException("Invalid Commerce reason");}
         int total=b.readVarInt(),eligible=b.readVarInt(),employed=b.readVarInt(),unemployed=b.readVarInt(),babies=b.readVarInt(),nitwits=b.readVarInt();
-        var authority=readPercent(b),observed=readPercent(b);var state=b.readEnum(EmploymentState.class);int diversity=b.readVarInt();int professionSize=b.readVarInt();
+        var authority=readPercent(b);
+        var observed=readPercent(b);
+        var state=b.readEnum(EmploymentState.class);int diversity=b.readVarInt();int professionSize=b.readVarInt();
         if(professionSize<0||professionSize>65536)throw new IllegalArgumentException("Invalid Commerce profession count");
         var professions=new TreeMap<ResourceLocation,Integer>();for(int i=0;i<professionSize;i++){var id=b.readResourceLocation();int count=b.readVarInt();if(count<=0||professions.put(id,count)!=null)throw new IllegalArgumentException("Invalid Commerce profession record");}
         return new CommerceSnapshot(metadata,enabled,status,reasons,total,eligible,employed,unemployed,babies,nitwits,authority,observed,state,diversity,professions,b.readVarInt(),b.readVarInt());
