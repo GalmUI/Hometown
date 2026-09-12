@@ -1,0 +1,17 @@
+Temporary extraction from Hometown_Implementation_Specification_Revision_2.docx for M6 planning. Do not merge this audit branch.
+
+M6 Integration and delivery
+Run the complete automated suite and normal build; execute all remaining world/UI regression fixtures, save/restart/reload and dedicated-server startup; profile representative village and dense town. Required checks: all B/Q/S/C/F/E/P/H tests plus O01–O05, with no required NOT RUN or FAIL. Produce the normal mod artifact and config/tag documentation. Update status and stop. M6 does not authorize Revision 3.
+
+Operational tests
+O01 Configuration and reload. Reject invalid weights, bands, registry kinds, predicates, duplicate rules and unsupported schema versions. Failed custom reload keeps last valid set; no mixed revisions. Optional foreign example does not require another mod.
+O02 UI. Visit all main tabs, Development categories, Food selectors and detail pages with long names, localized labels, COMPLETE/PARTIAL/UNAVAILABLE/DISABLED/N/A/zero cases at every supported GUI scale. No clipping, overlaps, tiny fonts, fractional blur or broken hitboxes. Tab/detail/page navigation performs no scans.
+O03 Multiplayer/lifecycle. Coalesce equivalent requests and keep History once per generation; stale town responses ignored; disconnect/dimension changes/unload/removed target produce no crash or leaked references. Cached response is labeled with age and never treated as fresh.
+O04 Build/server/save. Execute actual normal build, complete automated suite, dedicated-server startup, old-world migration, save/restart and resource reload. No accidental client classes on server or new required mod dependencies.
+O05 Performance. Profile representative village and dense fixture with hardware, coordinates, residents, rooms, loaded chunks, storage, work counters and elapsed time recorded. Typical request target below 50 ms; investigate exceedance, never claim from compilation. Verify cooldown, no forced chunk tickets, and all ceilings under repeated requests.
+
+Definition of done
+The phase is complete when all required milestones M0–M6 are implemented, every Development category has its intended functioning view, the protected baseline still works, and every required acceptance test is PASS with evidence. FAIL and NOT RUN remain explicit gaps and prevent phase completion. There must be no required placeholder left behind and no unreported failing check.
+
+Delivery
+Deliver the normal compiled mod artifact if the environment supports the build, a concise change summary, configuration and tag examples, compatibility notes for actually tested providers, and the interruption-safe status record. Report exact build/test commands and results in the implementation handoff, not in the in-game UI.
