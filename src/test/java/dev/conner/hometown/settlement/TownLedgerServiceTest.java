@@ -4,6 +4,7 @@ import dev.conner.hometown.component.SettlementIdComponent;
 import dev.conner.hometown.network.RequestTownLedgerPayload;
 import dev.conner.hometown.network.TownLedgerSnapshotPayload;
 import dev.conner.hometown.network.data.TownLedgerSnapshot;
+import java.util.List;
 import java.util.UUID;
 import net.minecraft.SharedConstants;
 import net.minecraft.core.BlockPos;
@@ -38,7 +39,6 @@ class TownLedgerServiceTest {
         var cooldowns = new ItemCooldowns();
         when(player.getCooldowns()).thenReturn(cooldowns);
         var component = DataComponentType.<SettlementIdComponent>builder().persistent(SettlementIdComponent.CODEC).build();
-        // Supply registry handles without requiring a running mod loader in this unit test.
         var ledgerItem = Items.WRITTEN_BOOK;
         var stack = new ItemStack(ledgerItem);
         when(player.getItemInHand(InteractionHand.MAIN_HAND)).thenReturn(stack);
@@ -68,7 +68,8 @@ class TownLedgerServiceTest {
             when(level.getChunkSource()).thenReturn(chunks);
             when(chunks.getChunkNow(0, 0)).thenReturn(mock(LevelChunk.class));
             when(level.getBlockState(town.bellPosition())).thenReturn(Blocks.AIR.defaultBlockState());
-            scanner.when(() -> SettlementScanner.scan(level, town, 32)).thenReturn(SettlementStats.unavailable());
+            var unavailable=new SettlementObservation(SettlementStats.unavailable(),List.of(),0,0);
+            scanner.when(() -> SettlementScanner.observe(level, town, 32)).thenReturn(unavailable);
             var missing = TownLedgerService.respond(player, request, ledgerItem, component);
             assertEquals(TownLedgerSnapshotPayload.Error.NONE, missing.error());
             assertEquals(TownLedgerSnapshot.BellState.MISSING, missing.snapshot().bellState());
@@ -83,7 +84,7 @@ class TownLedgerServiceTest {
             cooldowns.removeCooldown(ledgerItem);
             when(level.getGameTime()).thenReturn(80L);
             when(server.getLevel(Level.OVERWORLD)).thenReturn(null);
-            scanner.when(() -> SettlementScanner.scan(null, town, 32)).thenReturn(SettlementStats.unavailable());
+            scanner.when(() -> SettlementScanner.observe(null, town, 32)).thenReturn(unavailable);
             var unloaded = TownLedgerService.respond(player, request, ledgerItem, component).snapshot();
             assertEquals(TownLedgerSnapshot.BellState.UNAVAILABLE, unloaded.bellState());
             assertEquals(SettlementStats.Availability.UNAVAILABLE, unloaded.availability());
