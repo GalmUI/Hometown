@@ -35,10 +35,14 @@ class FoodM3RulesTest {
     @Test void F07_exactVanillaCropAgesAndUnsupportedBlocks()throws Exception{
         var resources=new HashMap<ResourceLocation,JsonElement>();for(String name:List.of("wheat","carrots","potatoes","beetroots"))resources.put(ResourceLocation.fromNamespaceAndPath("hometown",name),crop(name));
         var defs=CropRules.parse(resources);assertEquals(4,defs.rules().size());
-        var wheat6=Blocks.WHEAT.defaultBlockState().setValue(BlockStateProperties.AGE_7,6),wheat7=wheat6.setValue(BlockStateProperties.AGE_7,7);
-        var carrot6=Blocks.CARROTS.defaultBlockState().setValue(BlockStateProperties.AGE_7,6),carrot7=carrot6.setValue(BlockStateProperties.AGE_7,7);
-        var potato6=Blocks.POTATOES.defaultBlockState().setValue(BlockStateProperties.AGE_7,6),potato7=potato6.setValue(BlockStateProperties.AGE_7,7);
-        var beet2=Blocks.BEETROOTS.defaultBlockState().setValue(BlockStateProperties.AGE_3,2),beet3=beet2.setValue(BlockStateProperties.AGE_3,3);
+        var wheat6=Blocks.WHEAT.defaultBlockState().setValue(BlockStateProperties.AGE_7,6);
+        var wheat7=wheat6.setValue(BlockStateProperties.AGE_7,7);
+        var carrot6=Blocks.CARROTS.defaultBlockState().setValue(BlockStateProperties.AGE_7,6);
+        var carrot7=carrot6.setValue(BlockStateProperties.AGE_7,7);
+        var potato6=Blocks.POTATOES.defaultBlockState().setValue(BlockStateProperties.AGE_7,6);
+        var potato7=potato6.setValue(BlockStateProperties.AGE_7,7);
+        var beet2=Blocks.BEETROOTS.defaultBlockState().setValue(BlockStateProperties.AGE_3,2);
+        var beet3=beet2.setValue(BlockStateProperties.AGE_3,3);
         for(var pair:List.of(new net.minecraft.world.level.block.state.BlockState[]{wheat6,wheat7},new net.minecraft.world.level.block.state.BlockState[]{carrot6,carrot7},new net.minecraft.world.level.block.state.BlockState[]{potato6,potato7},new net.minecraft.world.level.block.state.BlockState[]{beet2,beet3})){
             var rule=defs.rule(pair[0]).orElseThrow();assertFalse(defs.mature(rule,pair[0]).orElseThrow());assertTrue(defs.mature(rule,pair[1]).orElseThrow());
         }
@@ -47,7 +51,8 @@ class FoodM3RulesTest {
     @Test void F08_customAnchorAndOmittedMaturityRemainUnassessed(){
         var custom=JsonParser.parseString("{\"schemaVersion\":1,\"block\":\"minecraft:sweet_berry_bush\",\"family\":\"example:berries\",\"anchorProperties\":{\"age\":\"2\"}}");
         var defs=CropRules.parse(Map.of(ResourceLocation.fromNamespaceAndPath("example","berries"),custom));
-        var age1=Blocks.SWEET_BERRY_BUSH.defaultBlockState().setValue(BlockStateProperties.AGE_3,1),age2=age1.setValue(BlockStateProperties.AGE_3,2);
+        var age1=Blocks.SWEET_BERRY_BUSH.defaultBlockState().setValue(BlockStateProperties.AGE_3,1);
+        var age2=age1.setValue(BlockStateProperties.AGE_3,2);
         assertTrue(defs.rule(age1).isEmpty());var rule=defs.rule(age2).orElseThrow();assertTrue(defs.mature(rule,age2).isEmpty());
     }
     @Test void F10_invalidReloadRetainsLastValidAndDuplicateBlockRejected()throws Exception{
