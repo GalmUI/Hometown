@@ -74,7 +74,7 @@ public record ProsperitySnapshot(ObservationMetadata metadata, boolean enabled, 
 
     public static ProsperitySnapshot read(FriendlyByteBuf b) {
         var metadata=ObservationMetadata.read(b); boolean enabled=b.readBoolean(); var status=b.readEnum(Status.class); int weight=b.readVarInt();
-        var total=optional(b), index=optional(b); Optional<Band> band=b.readBoolean()?Optional.of(b.readEnum(Band.class)):Optional.empty();
+        var total=optional(b); var index=optional(b); Optional<Band> band=b.readBoolean()?Optional.of(b.readEnum(Band.class)):Optional.empty();
         int count=size(b,ComponentType.values().length); var components=new ArrayList<Component>();
         for(int i=0;i<count;i++) {
             var type=b.readEnum(ComponentType.class);var componentStatus=b.readEnum(ComponentStatus.class);var raw=optional(b);var normalized=optional(b);
