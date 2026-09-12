@@ -1,0 +1,67 @@
+name: R2 M6 Dedicated Server Smoke
+
+on:
+  push:
+    branches: [r2-m6-server-smoke]
+
+permissions:
+  contents: read
+
+jobs:
+  server-smoke:
+    runs-on: ubuntu-latest
+    timeout-minutes: 8
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '21'
+          cache: gradle
+      - run: chmod +x gradlew
+      - name: Start dedicated server and require ready state
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p run
+          printf 'eula=true\n' > run/eula.txt
+          rm -f /tmp/hometown-server.log /tmp/hometown-server.in
+          mkfifo /tmp/hometown-server.in
+          ./gradlew runServer --no-daemon < /tmp/hometown-server.in > /tmp/hometown-server.log 2>&1 &
+          gradle_pid=$!
+          exec 3>/tmp/hometown-server.in
+          ready=0
+          for i in $(seq 1 240); do
+            if grep -Eq 'Done \([^)]*\)! For help' /tmp/hometown-server.log 2>/dev/null || grep -Eq 'Done \([^)]*\)! For help' run/logs/latest.log 2>/dev/null; then
+              ready=1
+              break
+            fi
+            if ! kill -0 "$gradle_pid" 2>/dev/null; then
+              break
+            fi
+            sleep 1
+          done
+          echo '===== dedicated server console ====='
+          cat /tmp/hometown-server.log || true
+          echo '===== latest.log ====='
+          cat run/logs/latest.log 2>/dev/null || true
+          if [ "$ready" -ne 1 ]; then
+            echo 'Dedicated server never reached ready state.' >&2
+            kill -TERM "$gradle_pid" 2>/dev/null || true
+            exit 1
+          fi
+          printf 'stop\n' >&3 || true
+          exec 3>&-
+          for i in $(seq 1 30); do
+            if ! kill -0 "$gradle_pid" 2>/dev/null; then break; fi
+            sleep 1
+          done
+          if kill -0 "$gradle_pid" 2>/dev/null; then
+            kill -TERM "$gradle_pid" 2>/dev/null || true
+          fi
+          wait "$gradle_pid" || true
+          if grep -Eqi 'Attempted to load class .* for invalid dist DEDICATED_SERVER|NoClassDefFoundError: net/minecraft/client|ClassNotFoundException: net\.minecraft\.client' /tmp/hometown-server.log run/logs/latest.log 2>/dev/null; then
+            echo 'Detected a client-only class failure on dedicated server.' >&2
+            exit 1
+          fi
+          echo 'Dedicated server reached ready state without a client-class crash.'
