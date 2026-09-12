@@ -1,0 +1,7 @@
+{
+  "schemaVersion": 1,
+  "block": "minecraft:wheat",
+  "family": "hometown:wheat",
+  "anchorProperties": {},
+  "matureProperties": { "age": "7" }
+}
