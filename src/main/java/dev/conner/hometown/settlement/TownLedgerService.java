@@ -10,6 +10,7 @@ import dev.conner.hometown.food.*;
 import dev.conner.hometown.safety.*;
 import dev.conner.hometown.comfort.*;
 import dev.conner.hometown.commerce.*;
+import dev.conner.hometown.prosperity.*;
 import dev.conner.hometown.observation.ObservationMetadata;
 import dev.conner.hometown.config.HometownServerConfig;
 import java.util.*;
@@ -27,10 +28,11 @@ public final class TownLedgerService {
     private static final Map<MinecraftServer,State> STATES=new WeakHashMap<>();
     private static final int MAX_CACHED_TOWNS=128, SESSION_EXPIRY=1200;
     private record Key(Settlement town,int vertical,FoodRules food,FoodVarietySettings variety,boolean growing,CropRules.Definitions crops,
-            SafetyCollector.Rules safety,ComfortSettings comfort,ComfortRules.Definitions comfortRules,boolean commerce,int cooldown,String tags,boolean available) {}
+            SafetyCollector.Rules safety,ComfortSettings comfort,ComfortRules.Definitions comfortRules,boolean commerce,
+            ProsperitySettings prosperity,int cooldown,String tags,boolean available) {}
     private record Observation(Key key,SettlementStats stats,TownLedgerSnapshot.BellState bell,HousingSnapshot housing,
             FoodSnapshot food,FoodVarietySnapshot variety,FoodGrowingSnapshot growing,SafetySnapshot safety,ComfortSnapshot comfort,
-            CommerceSnapshot commerce) {
+            CommerceSnapshot commerce,ProsperitySnapshot prosperity) {
         TownLedgerSnapshot page(int page) {
             return TownLedgerSnapshot.of(key.town(),stats,bell,page).withHousing(housing).withFood(food).withSafety(safety).withComfort(comfort);
         }
@@ -95,6 +97,10 @@ public final class TownLedgerService {
     public static Optional<CommerceSnapshotPayload> commerce(ServerPlayer player,UUID settlementId,long generation,int requestId) {
         return cached(player,settlementId,generation).map(observation->new CommerceSnapshotPayload(requestId,observation.commerce()));
     }
+    /** Returns only the already-cached Prosperity companion for the exact Ledger generation. Never scans. */
+    public static Optional<ProsperitySnapshotPayload> prosperity(ServerPlayer player,UUID settlementId,long generation,int requestId) {
+        return cached(player,settlementId,generation).map(observation->new ProsperitySnapshotPayload(requestId,observation.prosperity()));
+    }
     private static Optional<Observation> cached(ServerPlayer player,UUID settlementId,long generation){
         var state=STATES.get(player.getServer());if(state==null)return Optional.empty();
         var sessions=state.players.get(player.getUUID());if(sessions==null)return Optional.empty();
@@ -140,10 +146,15 @@ public final class TownLedgerService {
         catch(RuntimeException exception){residents=new SettlementObservation(SettlementStats.unavailable(),List.of(),0,0);}
         return CommerceEvaluator.evaluate(metadata(key,0,server.overworld().getGameTime()),residents,key.commerce());
     }
+    public static ProsperitySnapshot debugProsperity(MinecraftServer server,Settlement town) {
+        if(!server.isSameThread())throw new IllegalStateException("Prosperity observation requires the server thread");
+        var level=server.getLevel(town.dimension());var key=key(town,level!=null);
+        return collect(level,key,metadata(key,0,server.overworld().getGameTime())).prosperity();
+    }
     private static ObservationMetadata metadata(Key key,long generation,long time) {
         var t=key.town();
         return new ObservationMetadata(t.id(),t.dimension().location().toString(),generation,time,
-            fingerprint(key.food()+"|"+key.variety()+"|growing="+key.growing()+"|"+key.safety()+"|"+key.comfort()+"|commerce="+key.commerce()+"|"+key.cooldown()),
+            fingerprint(key.food()+"|"+key.variety()+"|growing="+key.growing()+"|"+key.safety()+"|"+key.comfort()+"|commerce="+key.commerce()+"|prosperity="+key.prosperity()+"|"+key.cooldown()),
             fingerprint(key.tags()+"|"+key.comfortRules().fingerprint()+"|"+key.crops().fingerprint()),
             fingerprint(t.dimension()+"|"+t.bellPosition()+"|"+t.radius()+"|"+key.vertical()));
     }
@@ -160,7 +171,7 @@ public final class TownLedgerService {
         Collections.sort(tags);
         return new Key(town,SettlementValidator.Rules.current().verticalRadius(),FoodRules.current(),FoodVarietySettings.current(),
             HometownServerConfig.FOOD_GROWING_ENABLED.get(),CropRules.current(),SafetyCollector.Rules.current(),ComfortSettings.current(),ComfortRules.current(),
-            HometownServerConfig.COMMERCE_ENABLED.get(),HometownServerConfig.REQUEST_COOLDOWN.get(),String.join("\n",tags),available);
+            HometownServerConfig.COMMERCE_ENABLED.get(),ProsperitySettings.current(),HometownServerConfig.REQUEST_COOLDOWN.get(),String.join("\n",tags),available);
     }
     private static long fingerprint(String text) {
         try { return java.nio.ByteBuffer.wrap(MessageDigest.getInstance("SHA-256").digest(text.getBytes(StandardCharsets.UTF_8))).getLong(); }
@@ -185,7 +196,8 @@ public final class TownLedgerService {
         var comfort=ComfortCollector.collect(housing,metadata,key.comfort(),key.comfortRules(),blocks);
         var growing=FoodGrowingCollector.collect(level,town,key.vertical(),metadata,key.growing(),key.crops(),blocks);
         var commerce=CommerceEvaluator.evaluate(metadata,residents,key.commerce());
-        return new Observation(key,stats,bell,housing.snapshot(),food.reserves(),variety,growing,safety,comfort,commerce);
+        var prosperity=ProsperityEvaluator.evaluate(metadata,stats,housing.snapshot(),food.reserves(),key.food(),safety,comfort,commerce,key.prosperity());
+        return new Observation(key,stats,bell,housing.snapshot(),food.reserves(),variety,growing,safety,comfort,commerce,prosperity);
     }
     private static TownLedgerSnapshotPayload error(RequestTownLedgerPayload request,TownLedgerSnapshotPayload.Error error) {
         return new TownLedgerSnapshotPayload(request.requestId(),null,error);
