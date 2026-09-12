@@ -2,13 +2,17 @@
 
 Milestone: **Revision 2 M5 — Prosperity + History**
 
-Playtest version: **0.8.0**
+Owner-validation playtest version: **0.8.0**
 
-Versioned implementation head before this docs-only evidence commit: `1200de1a70dd79f735da5cc606b68653b244b226`
+Final M5 polish version: **0.8.1**
+
+Versioned implementation head before the original owner-evidence commit: `1200de1a70dd79f735da5cc606b68653b244b226`
 
 ## Automated gate
 
-GitHub Actions run **34699534596** on the exact versioned `0.8.0` head completed successfully. Both the normal Gradle test task and normal mod build passed.
+GitHub Actions run **34699534596** on the exact versioned `0.8.0` owner-playtest head completed successfully. Both the normal Gradle test task and normal mod build passed.
+
+After owner validation, the two recorded Prosperity presentation findings were corrected in `0.8.1`. GitHub Actions run **34723647758** on exact code head `ee51c523dd3bd5c80e118734e42fed17fffbfd48` passed both the normal Gradle test task and normal mod build. Focused regression coverage verifies default and custom effective-weight/contribution formatting.
 
 The M5 automated coverage includes the pure five-input Prosperity evaluator, authoritative/incomplete component handling, exact band boundaries, weight and provenance behavior, v1→v2 SavedData migration, typed durable History events, confirmation windows, domain-local candidates, comparison revisions, Population/Food coalescing, Prosperity high-water behavior, retained History paging, networking, and M5 Ledger client behavior.
 
@@ -61,9 +65,12 @@ While moving among Overview, Development/Prosperity, and History, the displayed 
 
 **PASS — R2 M5 functional owner validation complete.**
 
-The following visual issues are recorded as cosmetic follow-up rather than functional blockers:
+## Post-validation Prosperity UI polish
 
-- The Prosperity explanatory sentence can be clipped/ellipsized at the bottom of the left page.
-- Player-facing weighted-contribution notation currently renders values such as `100% × 20 = 2000.0`; the Development Index math is correct, but a clearer presentation would be `100% × 20% = 20.0 pts` (and equivalent values for the other components).
+The two cosmetic findings from `0.8.0` were resolved in `0.8.1` without changing Prosperity math, observation authority, History state, or persistence:
 
-These presentation issues do not affect the underlying Development Index, History confirmation/persistence, save migration, or observation authority behavior.
+- The left-page authoritative-input explanation now wraps instead of being forcibly ellipsized.
+- The right-page contribution rows now present the component's effective share of enabled Prosperity weight and its actual contribution to the final 0–100 Development Index. With default weights this renders in the player-facing form `100% × 20% = 20.0 pts` rather than the internal weighted numerator `100% × 20 = 2000.0`.
+- Custom weights are normalized against total enabled weight for display, matching the evaluator's actual formula rather than assuming the default five equal weights.
+
+M5 is therefore complete with its recorded functional validation intact and its known Prosperity presentation findings closed before R2 M6 begins.
