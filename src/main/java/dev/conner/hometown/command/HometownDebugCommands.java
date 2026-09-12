@@ -32,7 +32,8 @@ public final class HometownDebugCommands {
                             .then(Commands.literal("growing").executes(HometownDebugCommands::foodGrowing)
                                 .then(Commands.argument("uuid",UuidArgument.uuid()).executes(HometownDebugCommands::foodGrowing))))
                         .then(Commands.literal("commerce").executes(HometownDebugCommands::commerce)
-                            .then(Commands.argument("uuid",UuidArgument.uuid()).executes(HometownDebugCommands::commerce)))
+                            .then(Commands.argument("uuid",UuidArgument.uuid()).executes(HometownDebugCommands::commerce)
+                                .then(Commands.argument("page",com.mojang.brigadier.arguments.IntegerArgumentType.integer(0,65536)).executes(HometownDebugCommands::commerce))))
                         .then(Commands.literal("housing").then(Commands.argument("uuid", UuidArgument.uuid()).executes(HometownDebugCommands::housing)))
                         .then(Commands.literal("list").executes(HometownDebugCommands::list))
                         .then(Commands.literal("inspect").then(Commands.argument("uuid", UuidArgument.uuid()).executes(context -> {
@@ -123,7 +124,9 @@ public final class HometownDebugCommands {
     }
     private static int commerce(CommandContext<CommandSourceStack> context) throws CommandSyntaxException {
         var snapshot=dev.conner.hometown.settlement.TownLedgerService.debugCommerce(context.getSource().getServer(),currentTown(context));
-        String output=dev.conner.hometown.commerce.CommerceDebugReport.format(snapshot);
+        int page=context.getNodes().stream().anyMatch(n->n.getNode().getName().equals("page"))
+                ?com.mojang.brigadier.arguments.IntegerArgumentType.getInteger(context,"page"):0;
+        String output=dev.conner.hometown.commerce.CommerceDebugReport.format(snapshot,page);
         context.getSource().sendSuccess(()->Component.literal(output),false);
         return snapshot.scanStatus()==dev.conner.hometown.commerce.CommerceSnapshot.Status.UNAVAILABLE?0:1;
     }
