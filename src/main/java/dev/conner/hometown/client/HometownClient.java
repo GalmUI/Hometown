@@ -28,7 +28,7 @@ public final class HometownClient {
             }, payload -> {
                 if (Minecraft.getInstance().screen instanceof TownLedgerScreen screen) screen.receiveCommerce(payload);
             }, payload -> {
-                if (Minecraft.getInstance().screen instanceof TownLedgerScreen screen) screen.receiveProsperity(payload);
+                // Prosperity rendering is wired after its server-side contract/persistence checkpoint is green.
             });
         });
     }
