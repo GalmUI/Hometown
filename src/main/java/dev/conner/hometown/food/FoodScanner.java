@@ -5,6 +5,7 @@ import dev.conner.hometown.settlement.*;
 import java.util.*;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.component.DataComponents;
+import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.core.registries.Registries;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.server.level.ServerLevel;
@@ -32,10 +33,17 @@ public final class FoodScanner {
     private FoodScanner() {}
     private record Store(BlockPos pos, BlockState state, BlockEntity entity) {}
     public static FoodSnapshot scan(ServerLevel level, Settlement town, SettlementStats stats, int vertical, FoodRules rules) {
-        return scan(level,town,stats,vertical,rules,Limits.DEFAULT);
+        return observe(level,town,stats,vertical,rules,Limits.DEFAULT).reserves();
     }
     public static FoodSnapshot scan(ServerLevel level, Settlement town, SettlementStats stats, int vertical, FoodRules rules, Limits limits) {
-        if (level == null || town == null || stats == null) return FoodSnapshot.unavailable(stats == null ? 0 : stats.population());
+        return observe(level,town,stats,vertical,rules,limits).reserves();
+    }
+    public static FoodObservation observe(ServerLevel level, Settlement town, SettlementStats stats, int vertical, FoodRules rules) {
+        return observe(level,town,stats,vertical,rules,Limits.DEFAULT);
+    }
+    public static FoodObservation observe(ServerLevel level, Settlement town, SettlementStats stats, int vertical, FoodRules rules, Limits limits) {
+        if (level == null || town == null || stats == null)
+            return new FoodObservation(FoodSnapshot.unavailable(stats == null ? 0 : stats.population()),List.of());
         Session scan = new Session(stats,limits);
         try { scan.read(level,town,vertical); }
         catch (RuntimeException exception) {
@@ -51,6 +59,7 @@ public final class FoodScanner {
         final Map<BlockPos,Store> stores = new TreeMap<>();
         final Set<BlockPos> containingFood = new HashSet<>();
         final Set<Item> types = new HashSet<>();
+        final List<FoodStackFact> facts = new ArrayList<>();
         int considered, loaded, unavailable, inspected, found, scanned, duplicates, storageUnavailable, lootSkipped, slots, stacks;
         long nutrition;
         boolean meaningful, emptyArea;
@@ -116,9 +125,11 @@ public final class FoodScanner {
                         if(stack.isEmpty() || stack.is(FOOD_EXCLUDED)) continue;
                         var food=stack.get(DataComponents.FOOD);
                         if(food==null || food.nutrition()<=0) continue;
-                        long next=Math.addExact(nutrition,Math.multiplyExact((long)food.nutrition(),stack.getCount()));
+                        long stackNutrition=Math.multiplyExact((long)food.nutrition(),stack.getCount());
+                        long next=Math.addExact(nutrition,stackNutrition);
                         // Commit only the successfully read stack; failures retain all earlier stacks.
                         nutrition=next;stacks++;types.add(stack.getItem());containingFood.add(inventoryKey(store,stores));
+                        facts.add(new FoodStackFact(BuiltInRegistries.ITEM.getKey(stack.getItem()),stackNutrition));
                     }
                     meaningful=true;scanned++;
                 } catch(RuntimeException exception) {
@@ -127,12 +138,12 @@ public final class FoodScanner {
                 }
             }
         }
-        FoodSnapshot finish(FoodRules rules) {
+        FoodObservation finish(FoodRules rules) {
             boolean knownData=meaningful || (emptyArea && found==0 && !reasons.contains(FoodScanReason.SCAN_LIMIT_REACHED));
             FoodScanStatus status=reasons.isEmpty()?FoodScanStatus.COMPLETE:knownData?FoodScanStatus.PARTIAL:FoodScanStatus.UNAVAILABLE;
             var diagnostics=new FoodScanDiagnostics(reasons,considered,loaded,unavailable,inspected,found,scanned,duplicates,
                     storageUnavailable,lootSkipped,slots,limits,stats.availability()==SettlementStats.Availability.COMPLETE);
-            return rules.snapshot(stats.population(),containingFood.size(),stacks,types.size(),nutrition,status,diagnostics);
+            return new FoodObservation(rules.snapshot(stats.population(),containingFood.size(),stacks,types.size(),nutrition,status,diagnostics),facts);
         }
     }
     private static BlockPos inventoryKey(Store store, Map<BlockPos,Store> stores) {
