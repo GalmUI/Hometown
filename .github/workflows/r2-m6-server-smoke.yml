@@ -19,17 +19,23 @@ jobs:
           java-version: '21'
           cache: gradle
       - run: chmod +x gradlew
-      - name: Start server, reload resources, and stop cleanly
+      - name: Start server, reload resources over RCON, and stop cleanly
         shell: bash
         run: |
           set -euo pipefail
           mkdir -p run
           printf 'eula=true\n' > run/eula.txt
-          rm -f /tmp/hometown-server.log /tmp/hometown-server.in
-          mkfifo /tmp/hometown-server.in
-          ./gradlew runServer --no-daemon < /tmp/hometown-server.in > /tmp/hometown-server.log 2>&1 &
+          cat > run/server.properties <<'EOF'
+          online-mode=false
+          enable-rcon=true
+          rcon.password=hometown-m6-smoke
+          rcon.port=25575
+          server-port=25565
+          motd=Hometown M6 smoke
+          EOF
+          rm -f /tmp/hometown-server.log
+          ./gradlew runServer --no-daemon </dev/null > /tmp/hometown-server.log 2>&1 &
           gradle_pid=$!
-          exec 3>/tmp/hometown-server.in
 
           ready=0
           for i in $(seq 1 240); do
@@ -48,8 +54,36 @@ jobs:
             exit 1
           fi
 
+          rcon() {
+            python - "$1" <<'PY'
+          import socket, struct, sys
+          command=sys.argv[1]
+          def packet(req, typ, text):
+              body=struct.pack('<ii',req,typ)+text.encode()+b'\x00\x00'
+              return struct.pack('<i',len(body))+body
+          def recv_packet(sock):
+              raw=sock.recv(4)
+              if len(raw)!=4: raise RuntimeError('short RCON length')
+              length=struct.unpack('<i',raw)[0]
+              data=b''
+              while len(data)<length:
+                  chunk=sock.recv(length-len(data))
+                  if not chunk: raise RuntimeError('short RCON body')
+                  data+=chunk
+              req,typ=struct.unpack('<ii',data[:8])
+              return req,typ,data[8:-2].decode(errors='replace')
+          with socket.create_connection(('127.0.0.1',25575),timeout=10) as s:
+              s.sendall(packet(41,3,'hometown-m6-smoke'))
+              req,typ,text=recv_packet(s)
+              if req==-1: raise SystemExit('RCON authentication failed')
+              s.sendall(packet(42,2,command))
+              req,typ,text=recv_packet(s)
+              print(text)
+          PY
+          }
+
           before_recipes=$(grep -Ec 'Loaded [0-9]+ recipes' run/logs/latest.log 2>/dev/null || true)
-          printf 'reload\n' >&3
+          rcon reload
           reloaded=0
           for i in $(seq 1 90); do
             after_recipes=$(grep -Ec 'Loaded [0-9]+ recipes' run/logs/latest.log 2>/dev/null || true)
@@ -77,13 +111,16 @@ jobs:
             exit 1
           fi
 
-          printf 'stop\n' >&3 || true
-          exec 3>&-
+          rcon stop || true
           stopped=0
-          for i in $(seq 1 30); do
+          for i in $(seq 1 45); do
             if ! kill -0 "$gradle_pid" 2>/dev/null; then stopped=1; break; fi
             sleep 1
           done
-          if kill -0 "$gradle_pid" 2>/dev/null; then kill -TERM "$gradle_pid" 2>/dev/null || true; fi
+          if [ "$stopped" -ne 1 ]; then
+            echo 'Server did not stop after RCON stop.' >&2
+            kill -TERM "$gradle_pid" 2>/dev/null || true
+            exit 1
+          fi
           wait "$gradle_pid" || true
-          echo 'Dedicated server reached ready state, completed /reload, and accepted shutdown without a client-class crash.'
+          echo 'Dedicated server reached ready state, completed /reload, and stopped through RCON without a client-class crash.'
