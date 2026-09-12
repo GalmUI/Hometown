@@ -189,7 +189,8 @@ class TownLedgerScreenTest {
                     assertEquals(section, subsectionField.get(screen));
                     var subsection = draw(screen);
                     if (section != DevelopmentSection.HOUSING && section != DevelopmentSection.FOOD
-                            && section != DevelopmentSection.SAFETY && section != DevelopmentSection.COMFORT) {
+                            && section != DevelopmentSection.SAFETY && section != DevelopmentSection.COMFORT
+                            && section != DevelopmentSection.COMMERCE) {
                         assertTrue(subsection.contains("This aspect of town development is not yet tracked."));
                         assertFalse(subsection.stream().anyMatch(t -> t.startsWith("Capacity:") || t.startsWith("Privacy:")));
                     }
@@ -197,6 +198,11 @@ class TownLedgerScreenTest {
                         assertTrue(subsection.contains("Comfort"));
                         assertTrue(subsection.contains("N/A"));
                         assertTrue(subsection.contains("Comfort Categories"));
+                        assertFalse(subsection.contains("This aspect of town development is not yet tracked."));
+                    }
+                    if (section == DevelopmentSection.COMMERCE) {
+                        assertTrue(subsection.contains("Commerce"));
+                        assertTrue(subsection.contains("Commerce observation is still arriving."));
                         assertFalse(subsection.contains("This aspect of town development is not yet tracked."));
                     }
                     if (section == DevelopmentSection.FOOD) {
