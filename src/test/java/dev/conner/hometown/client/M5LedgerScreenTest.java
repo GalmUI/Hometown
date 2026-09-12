@@ -44,9 +44,10 @@ class M5LedgerScreenTest {
             screen.receiveProsperity(new ProsperitySnapshotPayload(request.requestId(),prosperity(staleMeta,99)));
             assertSame(prosperity,field(screen,"prosperity"),"stale Prosperity companion must be rejected");
 
-            var event=new HistoryEvent(UUID.randomUUID(),fixture.id,2,HistoryEvent.Type.POPULATION_CHANGED,400,0,7,
+            var event=new HistoryEvent(2,fixture.id,HistoryEvent.Type.POPULATION_CHANGED,300,400,0,7,
+                    HistoryEvent.Type.POPULATION_CHANGED.translationKey,
                     Map.of("previousPopulation",HistoryArgument.intValue(3),"newPopulation",HistoryArgument.intValue(4)));
-            var history=new HistorySnapshotPayload(request.requestId(),fixture.id,fixture.meta.requestGeneration(),0,2,List.of(event),true);
+            var history=new HistorySnapshotPayload(request.requestId(),fixture.id,fixture.meta.requestGeneration(),0,2,true,List.of(event));
             screen.receiveHistory(history);assertSame(history,field(screen,"history"));
             set(screen,"activeTab",3);invokeUpdateButtons(screen);
             ((net.minecraft.client.gui.components.Button)field(screen,"next")).onPress();
@@ -54,7 +55,7 @@ class M5LedgerScreenTest {
             var page=(RequestHistoryPagePayload)sent.getLast();assertEquals(1,page.page());assertEquals(fixture.meta.requestGeneration(),page.generation());
             assertEquals(1,sent.stream().filter(RequestTownLedgerPayload.class::isInstance).count(),"History paging must not create a fresh Ledger request");
 
-            var staleHistory=new HistorySnapshotPayload(request.requestId(),fixture.id,fixture.meta.requestGeneration()+1,0,1,List.of(),true);
+            var staleHistory=new HistorySnapshotPayload(request.requestId(),fixture.id,fixture.meta.requestGeneration()+1,0,1,true,List.of());
             screen.receiveHistory(staleHistory);assertSame(history,field(screen,"history"),"stale History page must be rejected");
         }
     }
