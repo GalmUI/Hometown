@@ -10,15 +10,16 @@ The mod turns vanilla villages into named settlements centered on a Bell and a T
 - Platform: Minecraft 1.21.1 / NeoForge 21.1.250
 - Java toolchain: Java 21
 - Gradle wrapper: included in the repository
-- Current milestone: **Revision 2 M5 — Prosperity + History**
-- Automated gate: **PASS** — the M5 implementation test suite and normal build pass in GitHub Actions before owner handoff
-- Owner/play validation: **pending** for the `0.8.0` M5 playtest candidate
+- Current milestone: **Revision 2 M5 — Prosperity + History — COMPLETE**
+- Automated gate: **PASS** — the M5 implementation test suite and normal build pass in GitHub Actions on the exact versioned `0.8.0` head
+- Owner/play validation: **PASS** — save migration, Prosperity, confirmed/persistent Population History, and Housing shortage start/resolution were validated in the real Oured settlement
+- Next milestone: **Revision 2 M6 — Integration**
 
 M0–M5 implementation work is tracked separately from owner/play validation. A passing compile alone is not milestone completion; milestone acceptance also requires the applicable automated and interactive validation gates.
 
-The owner has validated the core M3 `0.6.0` Food Variety/Growing behavior and M4 `0.7.0` Commerce behavior in-game. M5 now derives Prosperity from the five authoritative Development inputs and adds confirmed, retained History events without introducing background or forced-chunk scans.
+The owner has validated the core M3 `0.6.0` Food Variety/Growing behavior, M4 `0.7.0` Commerce behavior, and M5 `0.8.0` Prosperity/History behavior in-game. M5 derives Prosperity from the five authoritative Development inputs and adds confirmed, retained History events without introducing background or forced-chunk scans.
 
-**M5 migration note:** `0.8.0` upgrades Hometown's SavedData schema from version 1 to version 2 so per-town History state can be retained. The migration preserves existing settlement identity and converts the previously authoritative founding record into the structural founding History event. Back up an existing playtest world before first opening it with `0.8.0`.
+**M5 migration note:** `0.8.0` upgrades Hometown's SavedData schema from version 1 to version 2 so per-town History state can be retained. The migration preserves existing settlement identity and converts the previously authoritative founding record into the structural founding History event. Existing worlds should still be backed up before first opening them with `0.8.0`.
 
 See [`docs/README.md`](docs/README.md) for specification authority, implementation tracking, historical references, and retained evidence.
 
