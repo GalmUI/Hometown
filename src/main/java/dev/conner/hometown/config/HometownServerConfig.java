@@ -14,6 +14,8 @@ public final class HometownServerConfig {
     public static final ModConfigSpec.BooleanValue SAFETY_ENABLED;
     public static final ModConfigSpec.BooleanValue COMFORT_ENABLED;
     public static final ModConfigSpec.BooleanValue COMMERCE_ENABLED;
+    public static final ModConfigSpec.BooleanValue PROSPERITY_ENABLED;
+    public static final ModConfigSpec.BooleanValue HISTORY_ENABLED;
     public static final ModConfigSpec.IntValue COMFORT_MAX_ROOMS, COMFORT_MAX_CELLS;
     public static final java.util.Map<dev.conner.hometown.comfort.ComfortCategory,ModConfigSpec.BooleanValue> COMFORT_CATEGORY_ENABLED=new java.util.EnumMap<>(dev.conner.hometown.comfort.ComfortCategory.class);
     public static final java.util.Map<dev.conner.hometown.comfort.ComfortCategory,ModConfigSpec.IntValue> COMFORT_CATEGORY_WEIGHT=new java.util.EnumMap<>(dev.conner.hometown.comfort.ComfortCategory.class);
@@ -22,6 +24,10 @@ public final class HometownServerConfig {
     public static final ModConfigSpec.IntValue FOOD_VARIETY_NUTRITION_PER_RESIDENT_GROUP;
     public static final ModConfigSpec.ConfigValue<java.util.List<String>> FOOD_VARIETY_GROUP_PRIORITY;
     public static final ModConfigSpec.IntValue MINIMUM_BLOCK_LIGHT, SAFETY_ENTITY_LIMIT, NEW_ENTITY_LIMIT, NEW_BLOCK_LIMIT, REQUEST_COOLDOWN;
+    public static final ModConfigSpec.IntValue PROSPERITY_HOUSING_WEIGHT, PROSPERITY_FOOD_WEIGHT, PROSPERITY_LIGHTING_WEIGHT,
+            PROSPERITY_COMFORT_WEIGHT, PROSPERITY_EMPLOYMENT_WEIGHT;
+    public static final ModConfigSpec.DoubleValue PROSPERITY_DEVELOPING, PROSPERITY_ESTABLISHED, PROSPERITY_FLOURISHING;
+    public static final ModConfigSpec.IntValue HISTORY_MAX_EVENTS, HISTORY_CONFIRMATION_TICKS, HISTORY_COALESCE_TICKS;
     static {
         ModConfigSpec.Builder builder = new ModConfigSpec.Builder();
         SETTLEMENT_RADIUS = builder.comment("Radius stored on new settlements; existing radii never change.")
@@ -70,6 +76,25 @@ public final class HometownServerConfig {
         builder.pop().pop();
         builder.push("commerce");
         COMMERCE_ENABLED=builder.define("enabled",true);
+        builder.pop();
+        builder.push("prosperity");
+        PROSPERITY_ENABLED=builder.define("enabled",true);
+        builder.push("weights");
+        PROSPERITY_HOUSING_WEIGHT=builder.defineInRange("housingSupply",20,0,100);
+        PROSPERITY_FOOD_WEIGHT=builder.defineInRange("foodReserves",20,0,100);
+        PROSPERITY_LIGHTING_WEIGHT=builder.defineInRange("residentialLighting",20,0,100);
+        PROSPERITY_COMFORT_WEIGHT=builder.defineInRange("residentialComfort",20,0,100);
+        PROSPERITY_EMPLOYMENT_WEIGHT=builder.defineInRange("employment",20,0,100);
+        builder.pop().push("bands");
+        PROSPERITY_DEVELOPING=builder.defineInRange("developing",25.0,Double.MIN_NORMAL,100.0);
+        PROSPERITY_ESTABLISHED=builder.defineInRange("established",50.0,Double.MIN_NORMAL,100.0);
+        PROSPERITY_FLOURISHING=builder.defineInRange("flourishing",75.0,Double.MIN_NORMAL,100.0);
+        builder.pop().pop();
+        builder.push("history");
+        HISTORY_ENABLED=builder.define("enabled",true);
+        HISTORY_MAX_EVENTS=builder.defineInRange("maxEventsPerTown",256,8,4096);
+        HISTORY_CONFIRMATION_TICKS=builder.defineInRange("confirmationTicks",200,200,24000);
+        HISTORY_COALESCE_TICKS=builder.defineInRange("coalesceTicks",1200,0,24000);
         builder.pop();
         SPEC = builder.build();
     }
