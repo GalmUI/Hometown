@@ -2,6 +2,7 @@ package dev.conner.hometown.client;
 
 import dev.conner.hometown.network.RequestTownLedgerPayload;
 import dev.conner.hometown.network.TownLedgerSnapshotPayload;
+import dev.conner.hometown.network.FoodM3SnapshotPayload;
 import dev.conner.hometown.network.data.TownLedgerSnapshot;
 import dev.conner.hometown.settlement.SettlementStats;
 import net.minecraft.client.gui.GuiGraphics;
@@ -18,16 +19,19 @@ public final class TownLedgerScreen extends Screen {
     private static int nextRequest;
     private final InteractionHand hand;
     private TownLedgerSnapshot snapshot;
+    private dev.conner.hometown.food.FoodVarietySnapshot foodVariety;
+    private dev.conner.hometown.food.FoodGrowingSnapshot foodGrowing;
     private TownLedgerSnapshotPayload.Error error = TownLedgerSnapshotPayload.Error.NONE;
     private int requestId, requestedPage, activeTab, left, top, bookWidth, bookHeight, waitTicks;
     private boolean waiting;
-    private Button previous, next, retry, comfortDetails, comfortBack;
+    private Button previous, next, retry, comfortDetails, comfortBack, foodReserves, foodVarietyButton, foodGrowingButton;
     private DevelopmentSection activeDevelopment = DevelopmentSection.HOUSING;
     private final java.util.List<Button> developmentButtons = new java.util.ArrayList<>();
     private Component hoveredText;
     private int safetyPage;
     private int comfortRoomPage;
     private boolean comfortRoomDetails;
+    private int foodSection, foodGrowingPage;
 
     public TownLedgerScreen(InteractionHand hand) {
         super(Component.translatable("item.hometown.town_ledger"));
@@ -97,13 +101,19 @@ public final class TownLedgerScreen extends Screen {
                     comfortRoomPage = 0;
                     updateButtons();
                 }, -1));
+        int foodGap=2, foodWidth=Math.max(1,(bookWidth-36-foodGap*2)/3), foodX=left+18;
+        foodReserves=addRenderableWidget(new Bookmark(foodX,top+52,foodWidth,14,Component.translatable("hometown.food.nav.reserves"),button->{foodSection=0;foodGrowingPage=0;updateButtons();},()->foodSection==0));
+        foodVarietyButton=addRenderableWidget(new Bookmark(foodX+foodWidth+foodGap,top+52,foodWidth,14,Component.translatable("hometown.food.nav.variety"),button->{foodSection=1;foodGrowingPage=0;updateButtons();},()->foodSection==1));
+        foodGrowingButton=addRenderableWidget(new Bookmark(foodX+(foodWidth+foodGap)*2,top+52,foodWidth,14,Component.translatable("hometown.food.nav.growing"),button->{foodSection=2;foodGrowingPage=0;updateButtons();},()->foodSection==2));
         updateButtons();
     }
 
+    private int foodGrowingPages(){return foodGrowing==null?1:Math.max(1,(foodGrowing.families().size()+3)/4);}
     private void previousPage() {
         if (activeTab != 2) { requestPage(snapshot.residentPage() - 1); return; }
         if (activeDevelopment == DevelopmentSection.SAFETY) safetyPage--;
         else if (activeDevelopment == DevelopmentSection.COMFORT && comfortRoomDetails) comfortRoomPage--;
+        else if (activeDevelopment == DevelopmentSection.FOOD && foodSection==2) foodGrowingPage--;
         updateButtons();
     }
 
@@ -111,10 +121,12 @@ public final class TownLedgerScreen extends Screen {
         if (activeTab != 2) { requestPage(snapshot.residentPage() + 1); return; }
         if (activeDevelopment == DevelopmentSection.SAFETY) safetyPage++;
         else if (activeDevelopment == DevelopmentSection.COMFORT && comfortRoomDetails) comfortRoomPage++;
+        else if (activeDevelopment == DevelopmentSection.FOOD && foodSection==2) foodGrowingPage++;
         updateButtons();
     }
 
     public void requestPage(int page) {
+        if(snapshot==null){foodVariety=null;foodGrowing=null;foodGrowingPage=0;}
         requestId = ++nextRequest;
         requestedPage = Math.max(0, page);
         waiting = true;
@@ -133,17 +145,23 @@ public final class TownLedgerScreen extends Screen {
         if (snapshot != null) {
             safetyPage = Math.min(safetyPage, safetyPages() - 1);
             comfortRoomPage = Math.min(comfortRoomPage, Math.max(0, snapshot.comfort().roomRecords().size() - 1));
+            if(foodVariety!=null&&!foodVariety.metadata().equals(snapshot.metadata())){foodVariety=null;foodGrowing=null;foodGrowingPage=0;}
         }
         // Do not keep showing another town's data after an invalid/switched held item.
-        if (error != TownLedgerSnapshotPayload.Error.NONE) snapshot = null;
+        if (error != TownLedgerSnapshotPayload.Error.NONE) { snapshot = null;foodVariety=null;foodGrowing=null;foodGrowingPage=0; }
         updateButtons();
+    }
+    public void receiveFoodM3(FoodM3SnapshotPayload payload) {
+        if(payload.requestId()!=requestId)return;
+        if(snapshot!=null&&!payload.variety().metadata().equals(snapshot.metadata()))return;
+        foodVariety=payload.variety();foodGrowing=payload.growing();foodGrowingPage=Math.min(foodGrowingPage,foodGrowingPages()-1);updateButtons();
     }
 
     @Override public void tick() {
         if (waiting && ++waitTicks >= 200) {
             waiting = false;
             error = TownLedgerSnapshotPayload.Error.FAILED;
-            snapshot = null;
+            snapshot = null;foodVariety=null;foodGrowing=null;foodGrowingPage=0;
             updateButtons();
         }
     }
@@ -154,17 +172,20 @@ public final class TownLedgerScreen extends Screen {
         boolean safetyPaging = activeTab == 2 && activeDevelopment == DevelopmentSection.SAFETY && snapshot != null && safetyPages() > 1;
         boolean comfortPaging = activeTab == 2 && activeDevelopment == DevelopmentSection.COMFORT && comfortRoomDetails
                 && snapshot != null && snapshot.comfort().roomRecords().size() > 1;
-        previous.visible = next.visible = paging || safetyPaging || comfortPaging;
+        boolean growingPaging=activeTab==2&&activeDevelopment==DevelopmentSection.FOOD&&foodSection==2&&foodGrowing!=null&&foodGrowingPages()>1;
+        previous.visible = next.visible = paging || safetyPaging || comfortPaging || growingPaging;
         previous.active = !waiting && ((paging && snapshot.residentPage() > 0)
-                || (safetyPaging && safetyPage > 0) || (comfortPaging && comfortRoomPage > 0));
+                || (safetyPaging && safetyPage > 0) || (comfortPaging && comfortRoomPage > 0) || (growingPaging&&foodGrowingPage>0));
         next.active = !waiting && ((paging && snapshot.residentPage() + 1 < snapshot.residentPages())
                 || (safetyPaging && safetyPage + 1 < safetyPages())
-                || (comfortPaging && comfortRoomPage + 1 < snapshot.comfort().roomRecords().size()));
+                || (comfortPaging && comfortRoomPage + 1 < snapshot.comfort().roomRecords().size()) || (growingPaging&&foodGrowingPage+1<foodGrowingPages()));
         retry.visible = !waiting && error != TownLedgerSnapshotPayload.Error.NONE;
         developmentButtons.forEach(button -> button.visible = activeTab == 2 && snapshot != null);
         boolean comfort = activeTab == 2 && activeDevelopment == DevelopmentSection.COMFORT && snapshot != null;
         comfortDetails.visible = comfort && !comfortRoomDetails && !snapshot.comfort().roomRecords().isEmpty();
         comfortBack.visible = comfort && comfortRoomDetails;
+        boolean food=activeTab==2&&activeDevelopment==DevelopmentSection.FOOD&&snapshot!=null;
+        foodReserves.visible=food;foodVarietyButton.visible=food;foodGrowingButton.visible=food;
     }
 
     @Override public boolean isPauseScreen() { return false; }
@@ -450,7 +471,9 @@ public final class TownLedgerScreen extends Screen {
     private static int roundPercent(double value) { return (int)Math.floor(value+0.5d); }
 
     private void food(GuiGraphics g, int column, int mx, int my) {
-        int x=left+18, right=left+bookWidth/2+18, y=top+58;
+        if(foodSection==1){if(foodVariety==null)foodM3Waiting(g,column,mx,my,"hometown.food.variety.title");else FoodM3LedgerView.variety(g,font,foodVariety,left+18,left+bookWidth/2+18,top+72,column,INK,MUTED,WARNING);return;}
+        if(foodSection==2){if(foodGrowing==null)foodM3Waiting(g,column,mx,my,"hometown.food.growing.title");else FoodM3LedgerView.growing(g,font,foodGrowing,foodGrowingPage,left+18,left+bookWidth/2+18,top+72,column,INK,MUTED,WARNING);return;}
+        int x=left+18, right=left+bookWidth/2+18, y=top+72;
         var f=snapshot.food();
         boolean partial=f.scanStatus()==dev.conner.hometown.food.FoodScanStatus.PARTIAL;
         line(g,Component.translatable("hometown.food.security"),x,y,column,INK,mx,my);
@@ -486,6 +509,9 @@ public final class TownLedgerScreen extends Screen {
         for(int i=0;i<storeKeys.length;i++) line(g,Component.translatable("hometown.food."+storeKeys[i],String.format(java.util.Locale.ROOT,"%,d",stores[i])),
                 right,y+28+i*18,column,INK,mx,my);
         if(partial) line(g,Component.translatable("hometown.food.known_only"),right,y+106,column,MUTED,mx,my);
+    }
+    private void foodM3Waiting(GuiGraphics g,int column,int mx,int my,String titleKey){
+        line(g,Component.translatable(titleKey),left+18,top+72,column,INK,mx,my);line(g,Component.translatable("hometown.food.m3_waiting"),left+18,top+92,bookWidth-36,MUTED,mx,my);
     }
 
     private void housing(GuiGraphics g, int column, int mx, int my) {
