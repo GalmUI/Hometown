@@ -55,7 +55,9 @@ class FoodVarietyEvaluatorTest {
     }
 
     @Test void F03_unclassifiedAndUniqueUseRegistryIdentity(){
-        var apple=id("apple"),odd=id("odd_food");var memberships=Map.of(apple,Set.of(FoodGroup.FRUIT));
+        var apple=id("apple");
+        var odd=id("odd_food");
+        var memberships=Map.of(apple,Set.of(FoodGroup.FRUIT));
         var result=FoodVarietyEvaluator.evaluate(META,FoodRules.DEFAULT.snapshot(5,1,3,2,22),List.of(
                 new FoodStackFact(apple,6),new FoodStackFact(apple,6),new FoodStackFact(odd,10)),defaults(),matcher(memberships));
         assertEquals(2,result.uniqueFoodCount(),"component/stack differences must not create new registry identities");
