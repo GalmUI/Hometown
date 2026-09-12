@@ -25,6 +25,8 @@ public final class HometownClient {
                 if (Minecraft.getInstance().screen instanceof TownLedgerScreen screen) screen.receive(payload);
             }, payload -> {
                 if (Minecraft.getInstance().screen instanceof TownLedgerScreen screen) screen.receiveFoodM3(payload);
+            }, payload -> {
+                if (Minecraft.getInstance().screen instanceof TownLedgerScreen screen) screen.receiveCommerce(payload);
             });
         });
     }
