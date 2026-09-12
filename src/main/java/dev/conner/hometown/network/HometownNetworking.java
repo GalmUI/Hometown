@@ -13,6 +13,7 @@ public final class HometownNetworking {
     private static Consumer<FoodM3SnapshotPayload> foodM3Handler = payload -> {};
     private static Consumer<CommerceSnapshotPayload> commerceHandler = payload -> {};
     private static Consumer<ProsperitySnapshotPayload> prosperityHandler = payload -> {};
+    private static Consumer<HistorySnapshotPayload> historyHandler = payload -> {};
     private HometownNetworking() {}
     public static void setClientHandler(Consumer<OpenTownNamingPayload> handler) { clientHandler = handler; }
     public static void setLedgerHandlers(Consumer<net.minecraft.world.InteractionHand> opener, Consumer<TownLedgerSnapshotPayload> handler,
@@ -20,6 +21,7 @@ public final class HometownNetworking {
             Consumer<ProsperitySnapshotPayload> prosperity) {
         ledgerOpener = opener;ledgerHandler = handler;foodM3Handler = foodHandler;commerceHandler=commerce;prosperityHandler=prosperity;
     }
+    public static void setHistoryHandler(Consumer<HistorySnapshotPayload> history){historyHandler=history;}
     public static void requestLedger(net.minecraft.world.InteractionHand hand) { ledgerOpener.accept(hand); }
     public static void register(RegisterPayloadHandlersEvent event) {
         var registrar = event.registrar("11");
@@ -35,7 +37,17 @@ public final class HometownNetworking {
                             net.neoforged.neoforge.network.PacketDistributor.sendToPlayer(player,snapshot));
                     dev.conner.hometown.settlement.TownLedgerService.prosperity(player,settlementId,generation,payload.requestId()).ifPresent(snapshot->
                             net.neoforged.neoforge.network.PacketDistributor.sendToPlayer(player,snapshot));
+                    dev.conner.hometown.settlement.TownLedgerService.history(player,settlementId,generation).ifPresent(history->
+                            net.neoforged.neoforge.network.PacketDistributor.sendToPlayer(player,HistorySnapshotPayload.page(payload.requestId(),settlementId,generation,0,history)));
                 }
+            }
+        });
+        registrar.playToServer(RequestHistoryPagePayload.TYPE,RequestHistoryPagePayload.STREAM_CODEC,(payload,context)->{
+            if(context.player() instanceof ServerPlayer player){
+                var history=dev.conner.hometown.settlement.TownLedgerService.history(player,payload.settlementId(),payload.generation());
+                var response=history.map(events->HistorySnapshotPayload.page(payload.requestId(),payload.settlementId(),payload.generation(),payload.page(),events))
+                        .orElseGet(()->HistorySnapshotPayload.unavailable(payload.requestId(),payload.settlementId(),payload.generation(),payload.page()));
+                net.neoforged.neoforge.network.PacketDistributor.sendToPlayer(player,response);
             }
         });
         registrar.playToClient(TownLedgerSnapshotPayload.TYPE, TownLedgerSnapshotPayload.STREAM_CODEC,
@@ -46,6 +58,8 @@ public final class HometownNetworking {
                 (payload,context)->commerceHandler.accept(payload));
         registrar.playToClient(ProsperitySnapshotPayload.TYPE,ProsperitySnapshotPayload.STREAM_CODEC,
                 (payload,context)->prosperityHandler.accept(payload));
+        registrar.playToClient(HistorySnapshotPayload.TYPE,HistorySnapshotPayload.STREAM_CODEC,
+                (payload,context)->historyHandler.accept(payload));
         registrar.playToClient(OpenTownNamingPayload.TYPE, OpenTownNamingPayload.STREAM_CODEC,
                 (payload, context) -> clientHandler.accept(payload));
         // NeoForge defaults to the main thread; validation and creation are one synchronous operation.
