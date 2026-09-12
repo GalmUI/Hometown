@@ -29,8 +29,10 @@ public final class Hometown {
         container.registerConfig(ModConfig.Type.SERVER, HometownServerConfig.SPEC);
         NeoForge.EVENT_BUS.addListener(BellInteractionHandler::onRightClick);
         NeoForge.EVENT_BUS.addListener(HometownDebugCommands::register);
-        NeoForge.EVENT_BUS.addListener((net.neoforged.neoforge.event.AddReloadListenerEvent event) ->
-            event.addListener(new dev.conner.hometown.comfort.ComfortRules()));
+        NeoForge.EVENT_BUS.addListener((net.neoforged.neoforge.event.AddReloadListenerEvent event) -> {
+            event.addListener(new dev.conner.hometown.comfort.ComfortRules());
+            event.addListener(new dev.conner.hometown.food.CropRules());
+        });
         NeoForge.EVENT_BUS.addListener((ServerStoppedEvent event) -> {
             SettlementManager.release(event.getServer());
             dev.conner.hometown.settlement.TownLedgerService.release(event.getServer());
