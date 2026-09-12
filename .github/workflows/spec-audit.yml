@@ -1,4 +1,4 @@
-name: R2 M5 Prosperity History Spec Audit
+name: R2 M5 Exact Range Audit
 
 on:
   push:
@@ -11,52 +11,38 @@ permissions:
   contents: read
 
 jobs:
-  extract-r2-m5:
+  extract-r2-m5-ranges:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - name: Extract exact R2 M5 Prosperity and History specification text
+      - name: Extract exact R2 M5 contiguous ranges
         shell: python
         run: |
-          import re
           import zipfile
           import xml.etree.ElementTree as ET
           from pathlib import Path
-
           path = Path('docs/specs/Hometown_Implementation_Specification_Revision_2.docx')
           ns = {'w': 'http://schemas.openxmlformats.org/wordprocessingml/2006/main'}
           with zipfile.ZipFile(path) as zf:
               root = ET.fromstring(zf.read('word/document.xml'))
-
-          blocks = []
-          body = root.find('w:body', ns)
+          blocks=[]
+          body=root.find('w:body',ns)
           for node in body:
               if node.tag.endswith('}p'):
-                  text = ''.join(t.text or '' for t in node.iterfind('.//w:t', ns)).strip()
-                  if text:
-                      blocks.append(text)
+                  text=''.join(t.text or '' for t in node.iterfind('.//w:t',ns)).strip()
+                  if text: blocks.append(text)
               elif node.tag.endswith('}tbl'):
-                  for row in node.findall('.//w:tr', ns):
-                      cells = []
-                      for cell in row.findall('./w:tc', ns):
-                          parts = []
-                          for p in cell.findall('.//w:p', ns):
-                              text = ''.join(t.text or '' for t in p.iterfind('.//w:t', ns)).strip()
-                              if text:
-                                  parts.append(text)
+                  for row in node.findall('.//w:tr',ns):
+                      cells=[]
+                      for cell in row.findall('./w:tc',ns):
+                          parts=[]
+                          for p in cell.findall('.//w:p',ns):
+                              text=''.join(t.text or '' for t in p.iterfind('.//w:t',ns)).strip()
+                              if text: parts.append(text)
                           cells.append(' | '.join(parts))
-                      row_text = ' || '.join(cells).strip()
-                      if row_text:
-                          blocks.append(row_text)
-
-          matcher = re.compile(r'\bM5\b|\bProsperity\b|\bHistory\b|\bP(?:0[1-9]|1[0-6])\b|\bH(?:0[1-9]|1[0-9]|20)\b|\bO0[13]\b|\bQ04\b|\bB01\b', re.IGNORECASE)
-          selected = set()
-          for i, block in enumerate(blocks):
-              if matcher.search(block):
-                  for j in range(max(0, i - 3), min(len(blocks), i + 4)):
-                      selected.add(j)
-
-          print('=== R2 M5 PROSPERITY + HISTORY SPEC AUDIT EXTRACT ===')
-          for i in sorted(selected):
-              print(f'{i:04d}: {blocks[i]}')
-          print('=== END EXTRACT ===')
+                      text=' || '.join(cells).strip()
+                      if text: blocks.append(text)
+          for start,end,title in [(174,200,'PROSPERITY'),(215,265,'HISTORY'),(274,285,'CONFIG')]:
+              print(f'=== {title} {start}-{end} ===')
+              for i in range(start,min(end+1,len(blocks))):
+                  print(f'{i:04d}: {blocks[i]}')
