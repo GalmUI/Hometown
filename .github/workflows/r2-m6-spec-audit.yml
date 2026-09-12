@@ -1,0 +1,51 @@
+name: R2 M6 Spec Audit
+
+on:
+  push:
+    branches: [r2-m6-spec-audit]
+
+jobs:
+  audit:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Extract R2 M6 specification context
+        shell: python
+        run: |
+          import re, zipfile
+          from xml.etree import ElementTree as ET
+
+          path = 'docs/specs/Hometown_Implementation_Specification_Revision_2.docx'
+          ns = {'w':'http://schemas.openxmlformats.org/wordprocessingml/2006/main'}
+          with zipfile.ZipFile(path) as z:
+              root = ET.fromstring(z.read('word/document.xml'))
+          paras=[]
+          for p in root.findall('.//w:body/w:p', ns):
+              text=''.join(t.text or '' for t in p.findall('.//w:t', ns)).strip()
+              if text:
+                  paras.append(text)
+          print(f'PARAGRAPHS={len(paras)}')
+          patterns=[r'\bM6\b', r'Integration', r'Acceptance', r'B0[1-8]', r'Q0[1-9]', r'Performance', r'budget', r'Revision 3', r'R3']
+          hits=set()
+          for i,t in enumerate(paras):
+              if any(re.search(p,t,re.I) for p in patterns):
+                  hits.add(i)
+          # Print wide windows around explicit M6/Integration matches first.
+          primary=[]
+          for i,t in enumerate(paras):
+              if re.search(r'\bM6\b|Integration',t,re.I):
+                  primary.append(i)
+          windows=[]
+          for i in primary:
+              windows.append((max(0,i-35), min(len(paras),i+55)))
+          # Merge overlaps.
+          windows.sort()
+          merged=[]
+          for a,b in windows:
+              if not merged or a>merged[-1][1]: merged.append([a,b])
+              else: merged[-1][1]=max(merged[-1][1],b)
+          for n,(a,b) in enumerate(merged,1):
+              print(f'=== PRIMARY WINDOW {n}: {a}-{b-1} ===')
+              for j in range(a,b): print(f'{j:04d}: {paras[j]}')
+          print('=== MATCH INDEX ===')
+          for i in sorted(hits): print(f'{i:04d}: {paras[i]}')
