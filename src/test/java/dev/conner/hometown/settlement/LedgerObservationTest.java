@@ -86,6 +86,9 @@ class LedgerObservationTest {
                 assertEquals(TownLedgerSnapshotPayload.Error.WAIT,TownLedgerService.respond(alice,
                     new RequestTownLedgerPayload(InteractionHand.MAIN_HAND,0,7,revised.metadata().requestGeneration()),Items.WRITTEN_BOOK,component).error());
             } finally { registry.bindTags(originalTags); }
+            // Fresh History baseline/revision updates legitimately dirty SavedData. Clear that known state before
+            // proving explicit debug is read-only and does not dirty saves by itself.
+            store.setDirty(false);
             int beforeDebug=store.all().size();
             TownLedgerService.debugSafety(server,town);
             TownLedgerService.debugSafety(server,town);
