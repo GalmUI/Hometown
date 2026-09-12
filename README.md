@@ -6,20 +6,20 @@ The mod turns vanilla villages into named settlements centered on a Bell and a T
 
 ## Current development state
 
-- Version: `0.8.0`
+- Version: `0.8.1`
 - Platform: Minecraft 1.21.1 / NeoForge 21.1.250
 - Java toolchain: Java 21
 - Gradle wrapper: included in the repository
 - Current milestone: **Revision 2 M5 — Prosperity + History — COMPLETE**
-- Automated gate: **PASS** — the M5 implementation test suite and normal build pass in GitHub Actions on the exact versioned `0.8.0` head
+- Automated gate: **PASS** — the M5 implementation suite and normal build pass on the exact `0.8.1` UI-polish code head in GitHub Actions run `34723647758`
 - Owner/play validation: **PASS** — save migration, Prosperity, confirmed/persistent Population History, and Housing shortage start/resolution were validated in the real Oured settlement
 - Next milestone: **Revision 2 M6 — Integration**
 
 M0–M5 implementation work is tracked separately from owner/play validation. A passing compile alone is not milestone completion; milestone acceptance also requires the applicable automated and interactive validation gates.
 
-The owner has validated the core M3 `0.6.0` Food Variety/Growing behavior, M4 `0.7.0` Commerce behavior, and M5 `0.8.0` Prosperity/History behavior in-game. M5 derives Prosperity from the five authoritative Development inputs and adds confirmed, retained History events without introducing background or forced-chunk scans.
+The owner has validated the core M3 `0.6.0` Food Variety/Growing behavior, M4 `0.7.0` Commerce behavior, and M5 `0.8.0` Prosperity/History behavior in-game. M5 derives Prosperity from the five authoritative Development inputs and adds confirmed, retained History events without introducing background or forced-chunk scans. The follow-up `0.8.1` patch resolves the two Prosperity presentation findings from owner validation by wrapping the authority note and rendering weighted contributions as effective percentages and Development Index points.
 
-**M5 migration note:** `0.8.0` upgrades Hometown's SavedData schema from version 1 to version 2 so per-town History state can be retained. The migration preserves existing settlement identity and converts the previously authoritative founding record into the structural founding History event. Existing worlds should still be backed up before first opening them with `0.8.0`.
+**M5 migration note:** `0.8.0` introduced Hometown SavedData schema version 2 so per-town History state can be retained. The migration preserves existing settlement identity and converts the previously authoritative founding record into the structural founding History event. Existing pre-M5 worlds should still be backed up before first opening them with any `0.8.x` build.
 
 See [`docs/README.md`](docs/README.md) for specification authority, implementation tracking, historical references, and retained evidence.
 
