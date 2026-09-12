@@ -1,0 +1,7 @@
+{
+  "schemaVersion": 1,
+  "block": "minecraft:carrots",
+  "family": "hometown:carrot",
+  "anchorProperties": {},
+  "matureProperties": { "age": "7" }
+}
