@@ -2,19 +2,21 @@
 
 Hometown is a Minecraft **1.21.1** mod for **NeoForge 21.1.250**, built with **Java 21**.
 
-The mod turns vanilla villages into named settlements centered on a Bell and a Town Ledger. Existing implemented systems include founding/identity, resident statistics, Housing, Food, Safety, Comfort, Food Variety, and Growing observation.
+The mod turns vanilla villages into named settlements centered on a Bell and a Town Ledger. Existing implemented systems include founding/identity, resident statistics, Housing, Food, Safety, Comfort, Food Variety, Growing observation, and Commerce.
 
 ## Current development state
 
-- Version: `0.6.0`
+- Version: `0.7.0`
 - Platform: Minecraft 1.21.1 / NeoForge 21.1.250
 - Java toolchain: Java 21
 - Gradle wrapper: included in the repository
-- Current milestone: **Revision 2 M3 — Food Variety and Growing**
-- Automated gate: **PASS** — full Gradle test suite and build pass locally and in GitHub Actions
-- Owner/play validation: **pending** for the `0.6.0` M3 playtest candidate
+- Current milestone: **Revision 2 M4 — Commerce**
+- Automated gate: **PASS** — the M4 implementation test suite and normal build pass in GitHub Actions before versioning; the exact `0.7.0` head must remain green before owner handoff
+- Owner/play validation: **pending** for the `0.7.0` M4 playtest candidate
 
-M0–M3 implementation work is tracked separately from owner/play validation. A passing compile alone is not milestone completion; milestone acceptance also requires the applicable automated and interactive validation gates.
+M0–M4 implementation work is tracked separately from owner/play validation. A passing compile alone is not milestone completion; milestone acceptance also requires the applicable automated and interactive validation gates.
+
+The owner validated the core M3 `0.6.0` Food Variety/Growing behavior in-game before M4 branched: Reserves remained coherent, Variety thresholds and population-driven requirements reacted correctly, and physical crop/family/maturity changes were reflected by Growing.
 
 See [`docs/README.md`](docs/README.md) for specification authority, implementation tracking, historical references, and retained evidence.
 
@@ -73,9 +75,9 @@ Every intentional playtest build containing changed code or data must receive a 
 
 Hometown uses milestone-oriented pre-1.0 versioning:
 
-- Advancing to a new implementation milestone increments the **minor** version and resets the patch number. Example: `0.5.x` → `0.6.0`.
-- A changed playtest build within the same milestone increments the **patch** version. Example: `0.6.0` → `0.6.1` → `0.6.2`.
-- The next milestone after `0.6.x` therefore begins at `0.7.0`.
+- Advancing to a new implementation milestone increments the **minor** version and resets the patch number. Example: `0.6.x` → `0.7.0`.
+- A changed playtest build within the same milestone increments the **patch** version. Example: `0.7.0` → `0.7.1` → `0.7.2`.
+- The next milestone after `0.7.x` therefore begins at `0.8.0`.
 - Version identifiers are never reused for materially different source or data.
 
 Because Hometown is still below `1.0`, the `0.x` version itself identifies the project as pre-1.0 development; separate `-alpha.N` suffixes are not required for normal milestone playtests.
