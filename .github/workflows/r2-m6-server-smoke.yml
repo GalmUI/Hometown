@@ -19,7 +19,7 @@ jobs:
           java-version: '21'
           cache: gradle
       - run: chmod +x gradlew
-      - name: Start dedicated server and require ready state
+      - name: Start server, reload resources, and stop cleanly
         shell: bash
         run: |
           set -euo pipefail
@@ -30,38 +30,60 @@ jobs:
           ./gradlew runServer --no-daemon < /tmp/hometown-server.in > /tmp/hometown-server.log 2>&1 &
           gradle_pid=$!
           exec 3>/tmp/hometown-server.in
+
           ready=0
           for i in $(seq 1 240); do
             if grep -Eq 'Done \([^)]*\)! For help' /tmp/hometown-server.log 2>/dev/null || grep -Eq 'Done \([^)]*\)! For help' run/logs/latest.log 2>/dev/null; then
               ready=1
               break
             fi
-            if ! kill -0 "$gradle_pid" 2>/dev/null; then
-              break
-            fi
+            if ! kill -0 "$gradle_pid" 2>/dev/null; then break; fi
             sleep 1
           done
-          echo '===== dedicated server console ====='
-          cat /tmp/hometown-server.log || true
-          echo '===== latest.log ====='
-          cat run/logs/latest.log 2>/dev/null || true
           if [ "$ready" -ne 1 ]; then
+            cat /tmp/hometown-server.log || true
+            cat run/logs/latest.log 2>/dev/null || true
             echo 'Dedicated server never reached ready state.' >&2
             kill -TERM "$gradle_pid" 2>/dev/null || true
             exit 1
           fi
-          printf 'stop\n' >&3 || true
-          exec 3>&-
-          for i in $(seq 1 30); do
+
+          before_recipes=$(grep -Ec 'Loaded [0-9]+ recipes' run/logs/latest.log 2>/dev/null || true)
+          printf 'reload\n' >&3
+          reloaded=0
+          for i in $(seq 1 90); do
+            after_recipes=$(grep -Ec 'Loaded [0-9]+ recipes' run/logs/latest.log 2>/dev/null || true)
+            if [ "$after_recipes" -gt "$before_recipes" ]; then
+              reloaded=1
+              break
+            fi
             if ! kill -0 "$gradle_pid" 2>/dev/null; then break; fi
             sleep 1
           done
-          if kill -0 "$gradle_pid" 2>/dev/null; then
+
+          echo '===== dedicated server console ====='
+          cat /tmp/hometown-server.log || true
+          echo '===== latest.log ====='
+          cat run/logs/latest.log 2>/dev/null || true
+
+          if [ "$reloaded" -ne 1 ]; then
+            echo 'Resource reload did not complete.' >&2
             kill -TERM "$gradle_pid" 2>/dev/null || true
-          fi
-          wait "$gradle_pid" || true
-          if grep -Eqi 'Attempted to load class .* for invalid dist DEDICATED_SERVER|NoClassDefFoundError: net/minecraft/client|ClassNotFoundException: net\.minecraft\.client' /tmp/hometown-server.log run/logs/latest.log 2>/dev/null; then
-            echo 'Detected a client-only class failure on dedicated server.' >&2
             exit 1
           fi
-          echo 'Dedicated server reached ready state without a client-class crash.'
+          if grep -Eqi 'Failed to reload|Reload failed|Exception while loading|Attempted to load class .* for invalid dist DEDICATED_SERVER|NoClassDefFoundError: net/minecraft/client|ClassNotFoundException: net\.minecraft\.client' /tmp/hometown-server.log run/logs/latest.log 2>/dev/null; then
+            echo 'Detected a resource-reload or client-class failure.' >&2
+            kill -TERM "$gradle_pid" 2>/dev/null || true
+            exit 1
+          fi
+
+          printf 'stop\n' >&3 || true
+          exec 3>&-
+          stopped=0
+          for i in $(seq 1 30); do
+            if ! kill -0 "$gradle_pid" 2>/dev/null; then stopped=1; break; fi
+            sleep 1
+          done
+          if kill -0 "$gradle_pid" 2>/dev/null; then kill -TERM "$gradle_pid" 2>/dev/null || true; fi
+          wait "$gradle_pid" || true
+          echo 'Dedicated server reached ready state, completed /reload, and accepted shutdown without a client-class crash.'
