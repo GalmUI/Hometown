@@ -22,7 +22,7 @@ public final class FoodGrowingCollector {
         Objects.requireNonNull(town);Objects.requireNonNull(metadata);Objects.requireNonNull(definitions);Objects.requireNonNull(cache);
         var reasons=new EnumMap<FoodGrowingSnapshot.Reason,Integer>(FoodGrowingSnapshot.Reason.class);
         var families=new TreeMap<ResourceLocation,Family>();
-        int growing=0,mature=0,unassessed=0,chunks=0,loaded=0,candidateSections=0,paletteInspections=0,blockInspections=0;
+        int growing=0,mature=0,unassessed=0,chunks=0,loaded=0,observableLoaded=0,candidateSections=0,paletteInspections=0,blockInspections=0;
         if(!enabled)return new FoodGrowingSnapshot(metadata,false,FoodGrowingSnapshot.Status.DISABLED,Map.of(),0,0,0,0,List.of(),0,0,0,0,0,cache.inspections(),cache.limit());
         if(level==null){reason(reasons,FoodGrowingSnapshot.Reason.NO_SETTLEMENT_DATA);return new FoodGrowingSnapshot(metadata,true,FoodGrowingSnapshot.Status.UNAVAILABLE,reasons,0,0,0,0,List.of(),0,0,0,0,0,cache.inspections(),cache.limit());}
 
@@ -42,6 +42,7 @@ public final class FoodGrowingCollector {
                 try { sections=chunk.getSections(); }
                 catch(RuntimeException error){reason(reasons,FoodGrowingSnapshot.Reason.INTERNAL_ERROR);continue;}
                 if(sections==null){reason(reasons,FoodGrowingSnapshot.Reason.INTERNAL_ERROR);continue;}
+                observableLoaded++;
                 for(int sectionIndex=0;sectionIndex<sections.length;sectionIndex++) {
                     int sectionY=level.getSectionYFromSectionIndex(sectionIndex),baseY=sectionY<<4;
                     int sy0=Math.max(minY,baseY),sy1=Math.min(maxY,baseY+15);
@@ -83,7 +84,7 @@ public final class FoodGrowingCollector {
         families.forEach((id,family)->records.add(new FoodGrowingSnapshot.FamilyRecord(id,family.growing,
                 family.unassessed==0?OptionalInt.of(family.mature):OptionalInt.empty(),family.unassessed==0?FoodGrowingSnapshot.MaturityStatus.ASSESSED:FoodGrowingSnapshot.MaturityStatus.UNASSESSED)));
         boolean discoveryIssue=reasons.keySet().stream().anyMatch(reason->reason!=FoodGrowingSnapshot.Reason.MATURITY_UNASSESSED);
-        boolean known=loaded>0&&(paletteInspections>0||blockInspections>0||definitions.rules().isEmpty());
+        boolean known=observableLoaded>0;
         var status=!discoveryIssue?FoodGrowingSnapshot.Status.COMPLETE:known?FoodGrowingSnapshot.Status.PARTIAL:FoodGrowingSnapshot.Status.UNAVAILABLE;
         return new FoodGrowingSnapshot(metadata,true,status,reasons,growing,mature,unassessed,records.size(),records,
                 chunks,loaded,candidateSections,paletteInspections,blockInspections,cache.inspections(),cache.limit());
