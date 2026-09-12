@@ -9,6 +9,7 @@ import dev.conner.hometown.housing.*;
 import dev.conner.hometown.food.*;
 import dev.conner.hometown.safety.*;
 import dev.conner.hometown.comfort.*;
+import dev.conner.hometown.commerce.*;
 import dev.conner.hometown.observation.ObservationMetadata;
 import dev.conner.hometown.config.HometownServerConfig;
 import java.util.*;
@@ -26,9 +27,10 @@ public final class TownLedgerService {
     private static final Map<MinecraftServer,State> STATES=new WeakHashMap<>();
     private static final int MAX_CACHED_TOWNS=128, SESSION_EXPIRY=1200;
     private record Key(Settlement town,int vertical,FoodRules food,FoodVarietySettings variety,boolean growing,CropRules.Definitions crops,
-            SafetyCollector.Rules safety,ComfortSettings comfort,ComfortRules.Definitions comfortRules,int cooldown,String tags,boolean available) {}
+            SafetyCollector.Rules safety,ComfortSettings comfort,ComfortRules.Definitions comfortRules,boolean commerce,int cooldown,String tags,boolean available) {}
     private record Observation(Key key,SettlementStats stats,TownLedgerSnapshot.BellState bell,HousingSnapshot housing,
-            FoodSnapshot food,FoodVarietySnapshot variety,FoodGrowingSnapshot growing,SafetySnapshot safety,ComfortSnapshot comfort) {
+            FoodSnapshot food,FoodVarietySnapshot variety,FoodGrowingSnapshot growing,SafetySnapshot safety,ComfortSnapshot comfort,
+            CommerceSnapshot commerce) {
         TownLedgerSnapshot page(int page) {
             return TownLedgerSnapshot.of(key.town(),stats,bell,page).withHousing(housing).withFood(food).withSafety(safety).withComfort(comfort);
         }
@@ -84,13 +86,20 @@ public final class TownLedgerService {
         sessions.put(town.id(),new Session(observation,requestedAt,now,false));
         return new TownLedgerSnapshotPayload(request.requestId(),observation.page(request.page()),TownLedgerSnapshotPayload.Error.NONE);
     }
-    /** Returns only the already-cached companion for the exact Ledger generation. Never scans. */
+    /** Returns only the already-cached Food companion for the exact Ledger generation. Never scans. */
     public static Optional<FoodM3SnapshotPayload> foodM3(ServerPlayer player,UUID settlementId,long generation,int requestId) {
+        var observation=cached(player,settlementId,generation).orElse(null);if(observation==null)return Optional.empty();
+        return Optional.of(new FoodM3SnapshotPayload(requestId,observation.variety(),observation.growing()));
+    }
+    /** Returns only the already-cached Commerce companion for the exact Ledger generation. Never scans. */
+    public static Optional<CommerceSnapshotPayload> commerce(ServerPlayer player,UUID settlementId,long generation,int requestId) {
+        return cached(player,settlementId,generation).map(observation->new CommerceSnapshotPayload(requestId,observation.commerce()));
+    }
+    private static Optional<Observation> cached(ServerPlayer player,UUID settlementId,long generation){
         var state=STATES.get(player.getServer());if(state==null)return Optional.empty();
         var sessions=state.players.get(player.getUUID());if(sessions==null)return Optional.empty();
         var session=sessions.get(settlementId);if(session==null||session.closed())return Optional.empty();
-        var observation=session.observation();if(observation.safety().metadata().requestGeneration()!=generation)return Optional.empty();
-        return Optional.of(new FoodM3SnapshotPayload(requestId,observation.variety(),observation.growing()));
+        var observation=session.observation();return observation.safety().metadata().requestGeneration()==generation?Optional.of(observation):Optional.empty();
     }
     /** Explicit operator observation; never modifies Ledger candidate/session state. */
     public static SafetySnapshot debugSafety(MinecraftServer server,Settlement town) {
@@ -124,10 +133,17 @@ public final class TownLedgerService {
         var cache=new dev.conner.hometown.observation.BlockObservationCache(level,SettlementQueries.bounds(town.bellPosition(),town.radius(),key.vertical()),key.safety().blockLimit());
         return FoodGrowingCollector.collect(level,town,key.vertical(),meta,key.growing(),key.crops(),cache);
     }
+    public static CommerceSnapshot debugCommerce(MinecraftServer server,Settlement town) {
+        if(!server.isSameThread())throw new IllegalStateException("Commerce scanning requires the server thread");
+        var level=server.getLevel(town.dimension());var key=key(town,level!=null);SettlementObservation residents;
+        try { residents=SettlementScanner.observe(level,town,key.vertical()); }
+        catch(RuntimeException exception){residents=new SettlementObservation(SettlementStats.unavailable(),List.of(),0,0);}
+        return CommerceEvaluator.evaluate(metadata(key,0,server.overworld().getGameTime()),residents,key.commerce());
+    }
     private static ObservationMetadata metadata(Key key,long generation,long time) {
         var t=key.town();
         return new ObservationMetadata(t.id(),t.dimension().location().toString(),generation,time,
-            fingerprint(key.food()+"|"+key.variety()+"|growing="+key.growing()+"|"+key.safety()+"|"+key.comfort()+"|"+key.cooldown()),
+            fingerprint(key.food()+"|"+key.variety()+"|growing="+key.growing()+"|"+key.safety()+"|"+key.comfort()+"|commerce="+key.commerce()+"|"+key.cooldown()),
             fingerprint(key.tags()+"|"+key.comfortRules().fingerprint()+"|"+key.crops().fingerprint()),
             fingerprint(t.dimension()+"|"+t.bellPosition()+"|"+t.radius()+"|"+key.vertical()));
     }
@@ -144,7 +160,7 @@ public final class TownLedgerService {
         Collections.sort(tags);
         return new Key(town,SettlementValidator.Rules.current().verticalRadius(),FoodRules.current(),FoodVarietySettings.current(),
             HometownServerConfig.FOOD_GROWING_ENABLED.get(),CropRules.current(),SafetyCollector.Rules.current(),ComfortSettings.current(),ComfortRules.current(),
-            HometownServerConfig.REQUEST_COOLDOWN.get(),String.join("\n",tags),available);
+            HometownServerConfig.COMMERCE_ENABLED.get(),HometownServerConfig.REQUEST_COOLDOWN.get(),String.join("\n",tags),available);
     }
     private static long fingerprint(String text) {
         try { return java.nio.ByteBuffer.wrap(MessageDigest.getInstance("SHA-256").digest(text.getBytes(StandardCharsets.UTF_8))).getLong(); }
@@ -154,8 +170,10 @@ public final class TownLedgerService {
         var town=key.town();
         var bell=level==null||!SettlementQueries.loaded(level,town.bellPosition())?TownLedgerSnapshot.BellState.UNAVAILABLE:
             level.getBlockState(town.bellPosition()).is(Blocks.BELL)?TownLedgerSnapshot.BellState.PRESENT:TownLedgerSnapshot.BellState.MISSING;
-        SettlementStats stats;
-        try { stats=SettlementScanner.scan(level,town,key.vertical()); }catch(RuntimeException exception){Hometown.LOGGER.warn("Unable to observe Hometown {}",town.id(),exception);stats=SettlementStats.unavailable();}
+        SettlementObservation residents;
+        try { residents=SettlementScanner.observe(level,town,key.vertical()); }
+        catch(RuntimeException exception){Hometown.LOGGER.warn("Unable to observe Hometown {}",town.id(),exception);residents=new SettlementObservation(SettlementStats.unavailable(),List.of(),0,0);}
+        var stats=residents.stats();
         HousingScanner.Observation housing;
         try { housing=HousingScanner.observe(level,town,stats,key.vertical()); }catch(RuntimeException exception){Hometown.LOGGER.warn("Unable to observe Housing {}",town.id(),exception);housing=new HousingScanner.Observation(HousingSnapshot.unavailable(stats.population(),stats.beds()),Set.of());}
         FoodObservation food;
@@ -166,7 +184,8 @@ public final class TownLedgerService {
         var safety=SafetyCollector.collect(level,town,key.vertical(),housing,metadata,key.safety(),blocks);
         var comfort=ComfortCollector.collect(housing,metadata,key.comfort(),key.comfortRules(),blocks);
         var growing=FoodGrowingCollector.collect(level,town,key.vertical(),metadata,key.growing(),key.crops(),blocks);
-        return new Observation(key,stats,bell,housing.snapshot(),food.reserves(),variety,growing,safety,comfort);
+        var commerce=CommerceEvaluator.evaluate(metadata,residents,key.commerce());
+        return new Observation(key,stats,bell,housing.snapshot(),food.reserves(),variety,growing,safety,comfort,commerce);
     }
     private static TownLedgerSnapshotPayload error(RequestTownLedgerPayload request,TownLedgerSnapshotPayload.Error error) {
         return new TownLedgerSnapshotPayload(request.requestId(),null,error);
