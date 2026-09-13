@@ -13,6 +13,7 @@ public record HistoryEvent(long sequenceNumber, UUID settlementId, Type type, lo
         TOWN_FOUNDED("history.hometown.town_founded"),
         TOWN_HALL_ESTABLISHED("history.hometown.town_hall_established"),
         STORAGE_ESTABLISHED("history.hometown.storage_established"),
+        ANIMAL_FARM_ESTABLISHED("history.hometown.animal_farm_established"),
         POPULATION_CHANGED("history.hometown.population_changed"),
         HOUSING_SHORTAGE_STARTED("history.hometown.housing_shortage_started"),
         HOUSING_SHORTAGE_RESOLVED("history.hometown.housing_shortage_resolved"),
