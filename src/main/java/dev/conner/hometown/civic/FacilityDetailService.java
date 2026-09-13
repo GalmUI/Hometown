@@ -1,5 +1,8 @@
 package dev.conner.hometown.civic;
 
+import dev.conner.hometown.food.DailyMealSavedData;
+import dev.conner.hometown.food.DailyMealService;
+import dev.conner.hometown.food.DailyMealState;
 import dev.conner.hometown.network.FacilityDetailSnapshotPayload;
 import dev.conner.hometown.network.FacilityDetailSnapshotPayload.Line;
 import dev.conner.hometown.network.FacilityDetailSnapshotPayload.Tone;
@@ -51,16 +54,23 @@ public final class FacilityDetailService {
             if (marker != null) return fail(player, "This civic sign has conflicting facility registrations.");
             marker = candidate;
         }
-        // An unregistered sign remains a normal vanilla sign.
         if (marker == null) return Optional.empty();
 
-        return Optional.of(snapshotFor(level, town, civic, marker));
+        var meal = DailyMealSavedData.get(server).get(town.id());
+        return Optional.of(snapshotFor(level, town, civic, marker, meal, level.getDayTime()));
     }
 
     static FacilityDetailSnapshotPayload snapshotFor(
             ServerLevel level, Settlement town, TownCivicState civic, FacilityMarker marker) {
+        return snapshotFor(level, town, civic, marker, Optional.empty(), 0L);
+    }
+
+    static FacilityDetailSnapshotPayload snapshotFor(
+            ServerLevel level, Settlement town, TownCivicState civic, FacilityMarker marker,
+            Optional<DailyMealState> meal, long dayTime) {
         return switch (marker.type()) {
-            case STORAGE -> storageSnapshotFor(town, civic, marker, StorageService.revalidate(level, town, marker));
+            case STORAGE -> storageSnapshotFor(town, civic, marker,
+                    StorageService.revalidate(level, town, marker), meal, dayTime);
             case TOWN_HALL -> {
                 var result = TownHallService.revalidate(level, town, marker);
                 yield genericSnapshot(town, civic, marker, result.qualified(),
@@ -75,6 +85,12 @@ public final class FacilityDetailService {
 
     static FacilityDetailSnapshotPayload storageSnapshotFor(
             Settlement town, TownCivicState civic, FacilityMarker marker, StorageQualifier.Result result) {
+        return storageSnapshotFor(town, civic, marker, result, Optional.empty(), 0L);
+    }
+
+    static FacilityDetailSnapshotPayload storageSnapshotFor(
+            Settlement town, TownCivicState civic, FacilityMarker marker, StorageQualifier.Result result,
+            Optional<DailyMealState> meal, long dayTime) {
         boolean active = result.qualified();
         ArrayList<Line> lines = new ArrayList<>();
         addStatus(lines, marker, active);
@@ -91,9 +107,26 @@ public final class FacilityDetailService {
             lines.add(Line.note(StorageService.qualificationMessage(result), Tone.WARNING));
         }
         lines.add(Line.section("Operations"));
-        lines.add(Line.row("Daily Meal", "Not yet active", Tone.MUTED));
+        lines.add(Line.row("Daily Meal", DailyMealService.summary(meal),
+                DailyMealService.warning(meal) ? Tone.WARNING : meal.isPresent() ? Tone.GOOD : Tone.MUTED));
+        lines.add(Line.row("Next meal", DailyMealService.nextMealLabel(dayTime, meal), Tone.MUTED));
+        meal.ifPresent(last -> {
+            if (last.requiredNutrition() > 0) {
+                lines.add(Line.row("Last target",
+                        last.consumedNutrition() + " / " + last.requiredNutrition(),
+                        last.warning() ? Tone.WARNING : Tone.GOOD));
+            }
+            lines.add(Line.row("Last source", sourceLabel(last.source()), Tone.MUTED));
+            if (last.remainingKnownNutrition() >= 0) {
+                lines.add(Line.row("Known reserve after meal", Long.toString(last.remainingKnownNutrition()), Tone.NORMAL));
+            }
+            if (last.unresolvedLootContainers() > 0) {
+                lines.add(Line.note(last.unresolvedLootContainers()
+                        + " unresolved loot container(s) were protected and skipped.", Tone.MUTED));
+            }
+        });
         lines.add(Line.section("Role"));
-        lines.add(Line.note("Primary town food reserve. Daily Meal consumption will draw from this registered facility.", Tone.NORMAL));
+        lines.add(Line.note("Primary town food reserve. Once established, Daily Meal draws only from this registered facility.", Tone.NORMAL));
         return payload(town, civic, marker.type(), active, lines);
     }
 
@@ -146,6 +179,14 @@ public final class FacilityDetailService {
         lines.add(Line.section("Role"));
         lines.add(Line.note("Livestock production and animal-based town supplies.", Tone.NORMAL));
         return payload(town, civic, marker.type(), active, lines);
+    }
+
+    private static String sourceLabel(DailyMealState.Source source) {
+        return switch (source) {
+            case NONE -> "None";
+            case TOWN_HALL -> "Town Hall";
+            case STORAGE -> "Town Storage";
+        };
     }
 
     private static String enclosureLabel(AnimalFarmQualifier.Result result) {

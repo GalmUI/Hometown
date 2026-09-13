@@ -84,7 +84,8 @@ public final class FacilityDetailScreen extends Screen {
             int travel = Math.max(0, viewportHeight - thumbHeight);
             int thumbY = contentTop + (maxScroll == 0 ? 0 : travel * scrollOffset / maxScroll);
             graphics.fill(trackX, thumbY, trackX + 2, thumbY + thumbHeight, 0xFFB9A16E);
-            graphics.drawString(font, Component.literal("Scroll for more"), left, contentBottom + 2, 0xFF9F9F9F, false);
+            String hint = scrollOffset < maxScroll ? "Scroll for more" : "Scroll up for earlier details";
+            graphics.drawString(font, Component.literal(hint), left, contentBottom + 2, 0xFF9F9F9F, false);
         }
 
         super.render(graphics, mouseX, mouseY, partialTick);

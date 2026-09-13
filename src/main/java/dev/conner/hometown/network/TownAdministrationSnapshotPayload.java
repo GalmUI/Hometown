@@ -23,11 +23,25 @@ public record TownAdministrationSnapshotPayload(
         boolean storageActive,
         boolean animalFarmsUnlocked,
         boolean animalFarmEstablished,
-        boolean animalFarmActive) implements CustomPacketPayload {
+        boolean animalFarmActive,
+        String dailyMealSummary,
+        boolean dailyMealWarning) implements CustomPacketPayload {
 
     public static final int WIRE_NAME_LIMIT = 256;
     public static final Type<TownAdministrationSnapshotPayload> TYPE = new Type<>(
             ResourceLocation.fromNamespaceAndPath(Hometown.MOD_ID, "town_administration_snapshot"));
+
+    /** Compatibility constructor for pre-0.11 tests/callers that do not yet supply meal state. */
+    public TownAdministrationSnapshotPayload(
+            UUID settlementId, String townName, DyeColor primaryColor, DyeColor secondaryColor,
+            boolean townHallEstablished, boolean townHallActive, boolean noticeBoardUnlocked,
+            boolean civicProjectsUnlocked, boolean storageUnlocked, boolean storageEstablished,
+            boolean storageActive, boolean animalFarmsUnlocked, boolean animalFarmEstablished,
+            boolean animalFarmActive) {
+        this(settlementId, townName, primaryColor, secondaryColor, townHallEstablished, townHallActive,
+                noticeBoardUnlocked, civicProjectsUnlocked, storageUnlocked, storageEstablished, storageActive,
+                animalFarmsUnlocked, animalFarmEstablished, animalFarmActive, "Not yet processed", false);
+    }
 
     public static final StreamCodec<FriendlyByteBuf, TownAdministrationSnapshotPayload> STREAM_CODEC = StreamCodec.of(
             (buffer, value) -> {
@@ -45,6 +59,8 @@ public record TownAdministrationSnapshotPayload(
                 buffer.writeBoolean(value.animalFarmsUnlocked());
                 buffer.writeBoolean(value.animalFarmEstablished());
                 buffer.writeBoolean(value.animalFarmActive());
+                buffer.writeUtf(value.dailyMealSummary(), WIRE_NAME_LIMIT);
+                buffer.writeBoolean(value.dailyMealWarning());
             },
             buffer -> new TownAdministrationSnapshotPayload(
                     buffer.readUUID(),
@@ -60,17 +76,20 @@ public record TownAdministrationSnapshotPayload(
                     buffer.readBoolean(),
                     buffer.readBoolean(),
                     buffer.readBoolean(),
+                    buffer.readBoolean(),
+                    buffer.readUtf(WIRE_NAME_LIMIT),
                     buffer.readBoolean()));
 
     public TownAdministrationSnapshotPayload {
-        if (settlementId == null || townName == null || primaryColor == null || secondaryColor == null) {
+        if (settlementId == null || townName == null || primaryColor == null || secondaryColor == null
+                || dailyMealSummary == null) {
             throw new IllegalArgumentException("Town Administration snapshot requires complete identity data");
         }
         if (primaryColor == secondaryColor) {
             throw new IllegalArgumentException("Town Administration colors must differ");
         }
-        if (townName.length() > WIRE_NAME_LIMIT) {
-            throw new IllegalArgumentException("Town Administration town name exceeds wire limit");
+        if (townName.length() > WIRE_NAME_LIMIT || dailyMealSummary.length() > WIRE_NAME_LIMIT) {
+            throw new IllegalArgumentException("Town Administration text exceeds wire limit");
         }
         if (storageEstablished && !storageUnlocked) {
             throw new IllegalArgumentException("Established Storage must be unlocked");

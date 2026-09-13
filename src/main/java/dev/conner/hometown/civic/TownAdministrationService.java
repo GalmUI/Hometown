@@ -2,6 +2,8 @@ package dev.conner.hometown.civic;
 
 import dev.conner.hometown.component.HometownDataComponents;
 import dev.conner.hometown.component.SettlementIdComponent;
+import dev.conner.hometown.food.DailyMealSavedData;
+import dev.conner.hometown.food.DailyMealService;
 import dev.conner.hometown.item.HometownItems;
 import dev.conner.hometown.network.TownAdministrationSnapshotPayload;
 import dev.conner.hometown.settlement.HometownSavedData;
@@ -75,28 +77,34 @@ public final class TownAdministrationService {
             return fail(player, "Use the lectern inside the registered Town Hall to open Administration.");
         }
 
-        // Build one immutable Administration snapshot. Each registered facility is explicitly revalidated
-        // once here; client-side tab navigation never rescans the world.
         boolean storageActive = civic.facility(FacilityType.STORAGE)
                 .map(storage -> StorageService.revalidate(level, town, storage).qualified())
                 .orElse(false);
         boolean animalFarmActive = civic.facility(FacilityType.ANIMAL_FARM)
                 .map(farm -> AnimalFarmService.revalidate(level, town, farm).qualified())
                 .orElse(false);
-        return Optional.of(snapshotFor(town, civic, storageActive, animalFarmActive));
+        var meal = DailyMealSavedData.get(server).get(town.id());
+        return Optional.of(snapshotFor(town, civic, storageActive, animalFarmActive,
+                DailyMealService.summary(meal), DailyMealService.warning(meal)));
     }
 
     static TownAdministrationSnapshotPayload snapshotFor(Settlement town, TownCivicState civic) {
-        return snapshotFor(town, civic, false, false);
+        return snapshotFor(town, civic, false, false, "Not yet processed", false);
     }
 
     static TownAdministrationSnapshotPayload snapshotFor(
             Settlement town, TownCivicState civic, boolean storageActive) {
-        return snapshotFor(town, civic, storageActive, false);
+        return snapshotFor(town, civic, storageActive, false, "Not yet processed", false);
     }
 
     static TownAdministrationSnapshotPayload snapshotFor(
             Settlement town, TownCivicState civic, boolean storageActive, boolean animalFarmActive) {
+        return snapshotFor(town, civic, storageActive, animalFarmActive, "Not yet processed", false);
+    }
+
+    static TownAdministrationSnapshotPayload snapshotFor(
+            Settlement town, TownCivicState civic, boolean storageActive, boolean animalFarmActive,
+            String mealSummary, boolean mealWarning) {
         Objects.requireNonNull(town);
         Objects.requireNonNull(civic);
         var primary = civic.primaryColor().orElseThrow();
@@ -117,7 +125,9 @@ public final class TownAdministrationService {
                 storageEstablished && storageActive,
                 civic.isUnlocked(ProgressionUnlock.ANIMAL_FARMS),
                 animalFarmEstablished,
-                animalFarmEstablished && animalFarmActive);
+                animalFarmEstablished && animalFarmActive,
+                mealSummary,
+                mealWarning);
     }
 
     static boolean isLecternInValidatedHall(TownHallQualifier.Result validation, BlockPos lecternPosition) {

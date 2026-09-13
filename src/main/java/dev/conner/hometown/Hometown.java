@@ -34,6 +34,7 @@ public final class Hometown {
         NeoForge.EVENT_BUS.addListener(BellInteractionHandler::onRightClick);
         NeoForge.EVENT_BUS.addListener(TownHallInteractionHandler::onRightClick);
         NeoForge.EVENT_BUS.addListener(TownAdministrationInteractionHandler::onRightClick);
+        NeoForge.EVENT_BUS.addListener(dev.conner.hometown.food.DailyMealService::onServerTick);
         NeoForge.EVENT_BUS.addListener(HometownDebugCommands::register);
         NeoForge.EVENT_BUS.addListener(M5DebugCommands::register);
         NeoForge.EVENT_BUS.addListener(M6DebugCommands::register);

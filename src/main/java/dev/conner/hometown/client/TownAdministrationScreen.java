@@ -44,13 +44,9 @@ public final class TownAdministrationScreen extends Screen {
         if (progressionButton != null) progressionButton.active = page != Page.PROGRESSION;
     }
 
-    /**
-     * Screen#render invokes this before rendering widgets. Administration draws its own dimmer and panel,
-     * so the vanilla 1.21.1 blur/background pass must stay disabled for this screen.
-     */
     @Override
     public void renderBackground(GuiGraphics graphics, int mouseX, int mouseY, float partialTick) {
-        // Intentionally empty.
+        // Administration owns its background; keep vanilla blur disabled.
     }
 
     @Override
@@ -58,7 +54,7 @@ public final class TownAdministrationScreen extends Screen {
         graphics.fill(0, 0, width, height, 0xA0000000);
 
         int panelWidth = Math.min(360, Math.max(260, width - 32));
-        int panelHeight = Math.min(222, Math.max(196, height - 36));
+        int panelHeight = Math.min(238, Math.max(206, height - 36));
         int x = (width - panelWidth) / 2;
         int y = Math.max(10, (height - panelHeight) / 2);
 
@@ -85,13 +81,17 @@ public final class TownAdministrationScreen extends Screen {
     private void renderOverview(GuiGraphics graphics, int x, int y, int panelWidth) {
         int left = x + 18;
         int contentY = y + 72;
+        int rowWidth = panelWidth - 36;
         graphics.drawString(font, Component.literal("Town Hall"), left, contentY, 0xFFF4E8CC, false);
         graphics.drawString(font, Component.literal(snapshot.townHallEstablished() ? "Established" : "Not established"),
                 left, contentY + 16, snapshot.townHallEstablished() ? 0xFF9ED184 : 0xFFE08A8A, false);
         graphics.drawString(font, Component.literal(snapshot.townHallActive() ? "Active" : "Unavailable"),
                 left, contentY + 30, snapshot.townHallActive() ? 0xFF9ED184 : 0xFFE0B16A, false);
 
-        int swatchY = contentY + 58;
+        statusRow(graphics, left, contentY + 48, rowWidth, "Daily Meal", snapshot.dailyMealSummary(),
+                snapshot.dailyMealWarning() ? 0xFFE0B16A : 0xFF9ED184);
+
+        int swatchY = contentY + 76;
         drawSwatch(graphics, left, swatchY, TownColorUi.rgb(snapshot.primaryColor()));
         graphics.drawString(font, Component.literal("Primary: ").append(TownColorUi.label(snapshot.primaryColor())),
                 left + 24, swatchY + 3, 0xFFE4E4E4, false);
@@ -99,8 +99,8 @@ public final class TownAdministrationScreen extends Screen {
         graphics.drawString(font, Component.literal("Secondary: ").append(TownColorUi.label(snapshot.secondaryColor())),
                 left + 24, swatchY + 27, 0xFFE4E4E4, false);
 
-        graphics.drawWordWrap(font, Component.literal("Administration is available here while the registered Town Hall remains valid."),
-                left, swatchY + 54, panelWidth - 36, 0xFFB8B8B8);
+        graphics.drawWordWrap(font, Component.literal("Administration shows town-wide status; inspect facility signs for building-level details."),
+                left, swatchY + 53, panelWidth - 36, 0xFFB8B8B8);
     }
 
     private void renderProgression(GuiGraphics graphics, int x, int y, int panelWidth) {
