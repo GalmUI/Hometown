@@ -310,6 +310,7 @@
   "hometown.history.page": "History page %s / %s",
   "history.hometown.town_founded": "%s was founded by %s.",
   "history.hometown.town_hall_established": "%s established a Town Hall.",
+  "history.hometown.storage_established": "%s established town Storage.",
   "history.hometown.population_changed": "Population changed from %s to %s.",
   "history.hometown.housing_shortage_started": "Housing shortage began: %s residents, %s enclosed beds.",
   "history.hometown.housing_shortage_resolved": "Housing shortage resolved: %s residents, %s enclosed beds.",
