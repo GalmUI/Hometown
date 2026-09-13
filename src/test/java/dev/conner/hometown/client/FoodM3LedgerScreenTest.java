@@ -67,7 +67,7 @@ class FoodM3LedgerScreenTest {
             button(screen,"Development").onPress();button(screen,"Food").onPress();int before=requests.size();
             var reserves=draw(screen);assertTrue(reserves.contains("Food Security"));assertTrue(reserves.contains("Reserves"));assertTrue(reserves.contains("Variety"));assertTrue(reserves.contains("Growing"));
             button(screen,"Variety").onPress();var variety=draw(screen);assertTrue(variety.contains("Food Variety"));assertTrue(variety.contains("VARIED"));assertTrue(variety.contains("60%"));assertTrue(variety.contains("Food Groups: 3 / 5"));
-            assertTrue(variety.stream().anyMatch(text->text.startsWith("Stored Food Groups")),"Variety heading should render even when the book column ellipsizes it");
+            assertTrue(variety.contains("Food Groups"),"Variety heading should fit the book column without ellipsis");
             button(screen,"Growing").onPress();var growing=draw(screen);assertTrue(growing.contains("Growing Capacity"));assertTrue(growing.contains("Crops Observed: 15"));assertTrue(growing.contains("Crop Families: 5"));assertTrue(growing.contains("Crop 1"));assertTrue(growing.contains("Families page 1 / 2"));
             Button next=screen.children().stream().filter(w->w instanceof Button b&&b.getMessage().getString().equals("→")).map(w->(Button)w).findFirst().orElseThrow();assertTrue(next.visible&&next.active);next.onPress();var second=draw(screen);assertTrue(second.contains("Crop 5"));assertTrue(second.contains("Families page 2 / 2"));
             button(screen,"Reserves").onPress();assertTrue(draw(screen).contains("Food Security"));assertEquals(before,requests.size(),"Food subnavigation and Growing pagination must not request or rescan");
