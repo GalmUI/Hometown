@@ -2,8 +2,7 @@ package dev.conner.hometown.settlement;
 
 import dev.conner.hometown.component.SettlementIdComponent;
 import dev.conner.hometown.item.TownLedgerItem;
-import dev.conner.hometown.network.OpenTownNamingPayload;
-import dev.conner.hometown.network.SubmitTownNamePayload;
+import dev.conner.hometown.network.*;
 import io.netty.buffer.Unpooled;
 import java.util.UUID;
 import net.minecraft.SharedConstants;
@@ -13,9 +12,11 @@ import net.minecraft.network.FriendlyByteBuf;
 import net.minecraft.server.Bootstrap;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
+import net.minecraft.world.InteractionHand;
 import net.minecraft.world.entity.item.ItemEntity;
 import net.minecraft.world.entity.player.Abilities;
 import net.minecraft.world.entity.player.Inventory;
+import net.minecraft.world.item.DyeColor;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.Items;
 import org.junit.jupiter.api.BeforeAll;
@@ -39,19 +40,40 @@ class LedgerAndPayloadTest {
         } finally { buffer.release(); }
     }
 
-    @Test void namingPayloadsRoundTripUnicodeAndLimitWireSize() {
+    @Test void namingPayloadsRoundTripUnicodeColorsAndLimitWireSize() {
         FriendlyByteBuf buffer = new FriendlyByteBuf(Unpooled.buffer());
         try {
             var open = new OpenTownNamingPayload(new BlockPos(-123, 70, 456), Long.MIN_VALUE);
             OpenTownNamingPayload.STREAM_CODEC.encode(buffer, open);
             assertEquals(open, OpenTownNamingPayload.STREAM_CODEC.decode(buffer));
             buffer.clear();
-            var submit = new SubmitTownNamePayload(open.bellPosition(), open.nonce(), "🌳".repeat(32));
+            var submit = new SubmitTownNamePayload(open.bellPosition(), open.nonce(), "🌳".repeat(32),
+                    DyeColor.BLUE, DyeColor.WHITE);
             SubmitTownNamePayload.STREAM_CODEC.encode(buffer, submit);
             assertEquals(submit, SubmitTownNamePayload.STREAM_CODEC.decode(buffer));
             buffer.clear();
             assertThrows(RuntimeException.class, () -> SubmitTownNamePayload.STREAM_CODEC.encode(buffer,
-                    new SubmitTownNamePayload(BlockPos.ZERO, 0, "x".repeat(257))));
+                    new SubmitTownNamePayload(BlockPos.ZERO, 0, "x".repeat(257), DyeColor.RED, DyeColor.BLACK)));
+        } finally { buffer.release(); }
+    }
+
+    @Test void existingTownColorPayloadsRoundTripIdentityHandAndPalette() {
+        FriendlyByteBuf buffer = new FriendlyByteBuf(Unpooled.buffer());
+        try {
+            var request = new RequestTownColorsPayload(InteractionHand.OFF_HAND);
+            RequestTownColorsPayload.STREAM_CODEC.encode(buffer, request);
+            assertEquals(request, RequestTownColorsPayload.STREAM_CODEC.decode(buffer));
+            buffer.clear();
+
+            UUID townId = UUID.randomUUID();
+            var open = new OpenTownColorsPayload(townId, "Osea", InteractionHand.MAIN_HAND);
+            OpenTownColorsPayload.STREAM_CODEC.encode(buffer, open);
+            assertEquals(open, OpenTownColorsPayload.STREAM_CODEC.decode(buffer));
+            buffer.clear();
+
+            var submit = new SubmitTownColorsPayload(townId, InteractionHand.MAIN_HAND, DyeColor.RED, DyeColor.YELLOW);
+            SubmitTownColorsPayload.STREAM_CODEC.encode(buffer, submit);
+            assertEquals(submit, SubmitTownColorsPayload.STREAM_CODEC.decode(buffer));
         } finally { buffer.release(); }
     }
 
