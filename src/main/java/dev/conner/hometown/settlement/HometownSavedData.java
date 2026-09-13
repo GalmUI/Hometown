@@ -25,6 +25,7 @@ public final class HometownSavedData extends SavedData {
     private final Map<UUID, TownCivicState> civic = new LinkedHashMap<>();
 
     public record TownHallCommit(boolean changed, boolean firstEstablishment) {}
+    public record StorageCommit(boolean changed, boolean firstEstablishment) {}
 
     public static HometownSavedData get(MinecraftServer server) {
         return server.overworld().getDataStorage().computeIfAbsent(
@@ -90,6 +91,40 @@ public final class HometownSavedData extends SavedData {
         civic.put(id, next);
         setDirty();
         return new TownHallCommit(true, first);
+    }
+
+    /**
+     * Persist the current Storage marker and exactly one first-establishment History event.
+     * Storage is already a permanent progression unlock granted by Town Hall; this transaction never
+     * changes that progression truth and never persists transient facility validity.
+     */
+    public StorageCommit registerStorage(UUID id, FacilityMarker marker, long gameTime) {
+        Objects.requireNonNull(marker);
+        Settlement town = getSettlement(id).orElseThrow(() -> new IllegalArgumentException("Unknown Hometown civic owner"));
+        if (marker.type() != FacilityType.STORAGE || !marker.settlementId().equals(id)
+                || !marker.dimension().equals(town.dimension())) {
+            throw new IllegalArgumentException("Invalid Storage facility marker");
+        }
+        TownCivicState current = civicState(id);
+        if (!current.colorsConfigured()) throw new IllegalStateException("Town colors must be configured first");
+        if (!current.isUnlocked(ProgressionUnlock.STORAGE)) {
+            throw new IllegalStateException("Storage progression is not unlocked");
+        }
+        boolean first = current.facility(FacilityType.STORAGE).isEmpty();
+        TownCivicState next = current.withFacility(marker);
+        validateCivicOwner(id, next);
+        if (next.equals(current)) return new StorageCommit(false, false);
+
+        if (first) {
+            var args = new LinkedHashMap<String,HistoryArgument>();
+            args.put("townName", HistoryArgument.string(town.name()));
+            args.put("markerPosition", HistoryArgument.blockPos(marker.markerPosition()));
+            args.put("dimension", HistoryArgument.resource(marker.dimension().location().toString()));
+            history(id).append(id, HistoryEvent.Type.STORAGE_ESTABLISHED, gameTime, 0, args);
+        }
+        civic.put(id, next);
+        setDirty();
+        return new StorageCommit(true, first);
     }
 
     private static void validateCivicOwner(UUID id,TownCivicState state){
