@@ -1,8 +1,10 @@
 package dev.conner.hometown.settlement;
 
 import dev.conner.hometown.Hometown;
+import dev.conner.hometown.civic.*;
 import dev.conner.hometown.history.*;
 import java.util.*;
+import java.util.function.UnaryOperator;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.HolderLookup;
 import net.minecraft.nbt.CompoundTag;
@@ -10,15 +12,17 @@ import net.minecraft.nbt.ListTag;
 import net.minecraft.nbt.Tag;
 import net.minecraft.resources.ResourceKey;
 import net.minecraft.server.MinecraftServer;
+import net.minecraft.world.item.DyeColor;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.level.saveddata.SavedData;
 
 /** One save-wide store, attached to the overworld even for towns in other dimensions. */
 public final class HometownSavedData extends SavedData {
     public static final String FILE_NAME = "hometown_settlements";
-    private static final int DATA_VERSION = 2;
+    private static final int DATA_VERSION = 3;
     private final Map<UUID, Settlement> settlements = new LinkedHashMap<>();
     private final Map<UUID, HistoryTownState> history = new LinkedHashMap<>();
+    private final Map<UUID, TownCivicState> civic = new LinkedHashMap<>();
 
     public static HometownSavedData get(MinecraftServer server) {
         return server.overworld().getDataStorage().computeIfAbsent(
@@ -31,6 +35,28 @@ public final class HometownSavedData extends SavedData {
     public HistoryTownState history(UUID id){
         if(!settlements.containsKey(id))throw new IllegalArgumentException("Unknown Hometown history owner");
         return history.computeIfAbsent(id,ignored->new HistoryTownState());
+    }
+    public Optional<TownCivicState> getCivicState(UUID id){return Optional.ofNullable(civic.get(id));}
+    public TownCivicState civicState(UUID id){
+        if(!settlements.containsKey(id))throw new IllegalArgumentException("Unknown Hometown civic owner");
+        TownCivicState state=civic.get(id);
+        if(state==null)throw new IllegalStateException("Missing Hometown civic state");
+        return state;
+    }
+    public boolean configureColors(UUID id, DyeColor primary, DyeColor secondary){
+        return updateCivicState(id,state->state.withColors(primary,secondary));
+    }
+    public boolean updateCivicState(UUID id, UnaryOperator<TownCivicState> update){
+        Objects.requireNonNull(update);
+        TownCivicState current=civicState(id);
+        TownCivicState next=Objects.requireNonNull(update.apply(current));
+        validateCivicOwner(id,next);
+        if(next.equals(current))return false;
+        civic.put(id,next);setDirty();return true;
+    }
+    private static void validateCivicOwner(UUID id,TownCivicState state){
+        for(var marker:state.facilities().values())if(!marker.settlementId().equals(id))
+            throw new IllegalArgumentException("Foreign civic facility owner");
     }
     public Optional<Settlement> findByBell(ResourceKey<Level> dimension, BlockPos pos) {
         return settlements.values().stream().filter(s -> s.dimension().equals(dimension) && s.bellPosition().equals(pos)).findFirst();
@@ -49,6 +75,7 @@ public final class HometownSavedData extends SavedData {
     public void addSettlement(Settlement settlement) {
         insertUnique(settlement);
         history.put(settlement.id(), foundingHistory(settlement));
+        civic.put(settlement.id(),TownCivicState.empty());
         setDirty();
     }
 
@@ -64,6 +91,7 @@ public final class HometownSavedData extends SavedData {
         Settlement removed = settlements.remove(id);
         if (removed != null) {
             history.remove(id);
+            civic.remove(id);
             setDirty();
             Hometown.LOGGER.info("Removed Hometown '{}' [{}]", removed.name(), removed.id());
         }
@@ -72,13 +100,13 @@ public final class HometownSavedData extends SavedData {
 
     public static HometownSavedData load(CompoundTag tag, HolderLookup.Provider registries) {
         int version=tag.getInt("DataVersion");
-        if ((version != 1 && version != DATA_VERSION) || !tag.contains("Settlements", Tag.TAG_LIST)) {
+        if ((version != 1 && version != 2 && version != DATA_VERSION) || !tag.contains("Settlements", Tag.TAG_LIST)) {
             throw new IllegalStateException("Unsupported or damaged Hometown SavedData; restore a world backup");
         }
         HometownSavedData data = new HometownSavedData();
         ListTag list = tag.getList("Settlements", Tag.TAG_COMPOUND);
         for (int i = 0; i < list.size(); i++) data.insertUnique(Settlement.fromTag(list.getCompound(i)));
-        boolean migrated=version==1;
+        boolean migrated=version<DATA_VERSION;
         if(version==1){
             // Revision-1's History page was an authoritative presentation of these persisted founding fields.
             // Convert that known record; do not infer any derived events or baselines.
@@ -91,8 +119,25 @@ public final class HometownSavedData extends SavedData {
                 data.history.put(id,HistoryTownState.fromTag(entry.getCompound("State"),id));
             }
         }
-        // Add new fields with empty defaults, but never fabricate a missing v2 founding event.
+        // Preserve the R2 behavior for absent History state; never fabricate a missing v2/v3 founding event.
         for(var id:data.settlements.keySet())if(!data.history.containsKey(id)){data.history.put(id,new HistoryTownState());migrated=true;}
+
+        if(version<3){
+            for(var id:data.settlements.keySet())data.civic.put(id,TownCivicState.empty());
+        } else {
+            if(!tag.contains("Civic",Tag.TAG_LIST))throw new IllegalStateException("Missing Hometown civic state");
+            var civicList=tag.getList("Civic",Tag.TAG_COMPOUND);var seen=new HashSet<UUID>();
+            for(int i=0;i<civicList.size();i++){
+                var entry=civicList.getCompound(i);
+                if(!entry.hasUUID("SettlementId")||!entry.contains("State",Tag.TAG_COMPOUND))
+                    throw new IllegalStateException("Damaged Hometown civic entry");
+                UUID id=entry.getUUID("SettlementId");
+                if(!data.settlements.containsKey(id)||!seen.add(id))throw new IllegalStateException("Damaged Hometown civic owner");
+                try{data.civic.put(id,TownCivicState.fromTag(entry.getCompound("State"),id));}
+                catch(IllegalArgumentException ex){throw new IllegalStateException("Damaged Hometown civic state",ex);}
+            }
+            if(data.civic.size()!=data.settlements.size())throw new IllegalStateException("Missing Hometown civic owner");
+        }
         if(migrated)data.setDirty();
         Hometown.LOGGER.info("Loaded {} Hometowns from SavedData version {}{}", data.settlements.size(),version,migrated?" (migrated)":"");
         return data;
@@ -107,6 +152,9 @@ public final class HometownSavedData extends SavedData {
         var histories=new ListTag();
         settlements.keySet().forEach(id->{var entry=new CompoundTag();entry.putUUID("SettlementId",id);entry.put("State",history(id).toTag());histories.add(entry);});
         tag.put("History",histories);
+        var civicList=new ListTag();
+        settlements.keySet().forEach(id->{var entry=new CompoundTag();entry.putUUID("SettlementId",id);entry.put("State",civicState(id).toTag());civicList.add(entry);});
+        tag.put("Civic",civicList);
         return tag;
     }
 
