@@ -17,7 +17,7 @@ import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.level.block.Blocks;
 import net.minecraft.world.level.chunk.LevelChunk;
 
-/** Server-authoritative gate and immutable snapshot owner for R3 M1 Town Administration. */
+/** Server-authoritative gate and immutable snapshot owner for Town Administration. */
 public final class TownAdministrationService {
     private TownAdministrationService() {}
 
@@ -75,14 +75,25 @@ public final class TownAdministrationService {
             return fail(player, "Use the lectern inside the registered Town Hall to open Administration.");
         }
 
-        return Optional.of(snapshotFor(town, civic));
+        // Build one immutable Administration snapshot. Storage is revalidated once here when it exists;
+        // client-side page changes operate only on this snapshot and never rescan the world.
+        boolean storageActive = civic.facility(FacilityType.STORAGE)
+                .map(storage -> StorageService.revalidate(level, town, storage).qualified())
+                .orElse(false);
+        return Optional.of(snapshotFor(town, civic, storageActive));
     }
 
     static TownAdministrationSnapshotPayload snapshotFor(Settlement town, TownCivicState civic) {
+        return snapshotFor(town, civic, false);
+    }
+
+    static TownAdministrationSnapshotPayload snapshotFor(
+            Settlement town, TownCivicState civic, boolean storageActive) {
         Objects.requireNonNull(town);
         Objects.requireNonNull(civic);
         var primary = civic.primaryColor().orElseThrow();
         var secondary = civic.secondaryColor().orElseThrow();
+        boolean storageEstablished = civic.facility(FacilityType.STORAGE).isPresent();
         return new TownAdministrationSnapshotPayload(
                 town.id(),
                 town.name(),
@@ -93,6 +104,8 @@ public final class TownAdministrationService {
                 civic.isUnlocked(ProgressionUnlock.NOTICE_BOARD),
                 civic.isUnlocked(ProgressionUnlock.CIVIC_PROJECTS),
                 civic.isUnlocked(ProgressionUnlock.STORAGE),
+                storageEstablished,
+                storageEstablished && storageActive,
                 civic.isUnlocked(ProgressionUnlock.ANIMAL_FARMS));
     }
 
