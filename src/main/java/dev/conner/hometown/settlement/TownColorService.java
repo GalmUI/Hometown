@@ -13,9 +13,12 @@ import net.minecraft.network.chat.Component;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.item.DyeColor;
 import net.minecraft.world.item.Item;
+import net.minecraft.world.level.block.Blocks;
 
 /** Server-authoritative one-time town color configuration for existing/migrated towns. */
 public final class TownColorService {
+    private static final double MAX_BELL_INTERACTION_DISTANCE_SQR = 64.0D;
+
     private TownColorService() {}
 
     public static Optional<OpenTownColorsPayload> begin(ServerPlayer player, RequestTownColorsPayload request) {
@@ -44,6 +47,17 @@ public final class TownColorService {
             player.sendSystemMessage(Component.literal("This Town Ledger no longer points to a known Hometown."));
             return Optional.empty();
         }
+
+        // Color migration is a deliberate interaction with this town's founding Bell, not a global
+        // Ledger shortcut. Mismatched targets fail silently so unrelated Bells/blocks retain normal behavior.
+        var bellPos = request.bellPosition();
+        if (!town.bellPosition().equals(bellPos)) return Optional.empty();
+        var level = player.serverLevel();
+        if (!town.dimension().equals(level.dimension())) return Optional.empty();
+        if (!level.hasChunkAt(bellPos) || !level.getBlockState(bellPos).is(Blocks.BELL)) return Optional.empty();
+        if (player.distanceToSqr(bellPos.getX() + 0.5D, bellPos.getY() + 0.5D, bellPos.getZ() + 0.5D)
+                > MAX_BELL_INTERACTION_DISTANCE_SQR) return Optional.empty();
+
         if (data.civicState(town.id()).colorsConfigured()) {
             player.sendSystemMessage(Component.literal("Town colors are already configured."));
             return Optional.empty();
