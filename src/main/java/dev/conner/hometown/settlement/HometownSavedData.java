@@ -26,6 +26,7 @@ public final class HometownSavedData extends SavedData {
 
     public record TownHallCommit(boolean changed, boolean firstEstablishment) {}
     public record StorageCommit(boolean changed, boolean firstEstablishment) {}
+    public record AnimalFarmCommit(boolean changed, boolean firstEstablishment) {}
 
     public static HometownSavedData get(MinecraftServer server) {
         return server.overworld().getDataStorage().computeIfAbsent(
@@ -125,6 +126,36 @@ public final class HometownSavedData extends SavedData {
         civic.put(id, next);
         setDirty();
         return new StorageCommit(true, first);
+    }
+
+    /** Persist the Animal Farm marker and append exactly one first-establishment structural event. */
+    public AnimalFarmCommit registerAnimalFarm(UUID id, FacilityMarker marker, long gameTime) {
+        Objects.requireNonNull(marker);
+        Settlement town = getSettlement(id).orElseThrow(() -> new IllegalArgumentException("Unknown Hometown civic owner"));
+        if (marker.type() != FacilityType.ANIMAL_FARM || !marker.settlementId().equals(id)
+                || !marker.dimension().equals(town.dimension())) {
+            throw new IllegalArgumentException("Invalid Animal Farm facility marker");
+        }
+        TownCivicState current = civicState(id);
+        if (!current.colorsConfigured()) throw new IllegalStateException("Town colors must be configured first");
+        if (!current.isUnlocked(ProgressionUnlock.ANIMAL_FARMS)) {
+            throw new IllegalStateException("Animal Farms progression is not unlocked");
+        }
+        boolean first = current.facility(FacilityType.ANIMAL_FARM).isEmpty();
+        TownCivicState next = current.withFacility(marker);
+        validateCivicOwner(id, next);
+        if (next.equals(current)) return new AnimalFarmCommit(false, false);
+
+        if (first) {
+            var args = new LinkedHashMap<String,HistoryArgument>();
+            args.put("townName", HistoryArgument.string(town.name()));
+            args.put("markerPosition", HistoryArgument.blockPos(marker.markerPosition()));
+            args.put("dimension", HistoryArgument.resource(marker.dimension().location().toString()));
+            history(id).append(id, HistoryEvent.Type.ANIMAL_FARM_ESTABLISHED, gameTime, 0, args);
+        }
+        civic.put(id, next);
+        setDirty();
+        return new AnimalFarmCommit(true, first);
     }
 
     private static void validateCivicOwner(UUID id,TownCivicState state){
