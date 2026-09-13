@@ -18,6 +18,7 @@ public final class HometownNetworking {
     private static Consumer<CommerceSnapshotPayload> commerceHandler = payload -> {};
     private static Consumer<ProsperitySnapshotPayload> prosperityHandler = payload -> {};
     private static Consumer<HistorySnapshotPayload> historyHandler = payload -> {};
+    private static Consumer<TownAdministrationSnapshotPayload> administrationHandler = payload -> {};
     private HometownNetworking() {}
     public static void setClientHandler(Consumer<OpenTownNamingPayload> handler) { clientHandler = handler; }
     public static void setColorHandler(Consumer<OpenTownColorsPayload> handler) { colorHandler = handler; }
@@ -27,12 +28,13 @@ public final class HometownNetworking {
         ledgerOpener = opener;ledgerHandler = handler;foodM3Handler = foodHandler;commerceHandler=commerce;prosperityHandler=prosperity;
     }
     public static void setHistoryHandler(Consumer<HistorySnapshotPayload> history){historyHandler=history;}
+    public static void setAdministrationHandler(Consumer<TownAdministrationSnapshotPayload> administration){administrationHandler=administration;}
     public static void requestLedger(net.minecraft.world.InteractionHand hand) { ledgerOpener.accept(hand); }
     public static void requestTownColors(net.minecraft.world.InteractionHand hand, BlockPos bellPosition) {
         PacketDistributor.sendToServer(new RequestTownColorsPayload(hand, bellPosition));
     }
     public static void register(RegisterPayloadHandlersEvent event) {
-        var registrar = event.registrar("13");
+        var registrar = event.registrar("14");
         registrar.playToServer(RequestTownLedgerPayload.TYPE, RequestTownLedgerPayload.STREAM_CODEC, (payload, context) -> {
             if (context.player() instanceof ServerPlayer player) {
                 var response=dev.conner.hometown.settlement.TownLedgerService.respond(player,payload);
@@ -68,6 +70,8 @@ public final class HometownNetworking {
                 (payload,context)->prosperityHandler.accept(payload));
         registrar.playToClient(HistorySnapshotPayload.TYPE,HistorySnapshotPayload.STREAM_CODEC,
                 (payload,context)->historyHandler.accept(payload));
+        registrar.playToClient(TownAdministrationSnapshotPayload.TYPE,TownAdministrationSnapshotPayload.STREAM_CODEC,
+                (payload,context)->administrationHandler.accept(payload));
         registrar.playToClient(OpenTownNamingPayload.TYPE, OpenTownNamingPayload.STREAM_CODEC,
                 (payload, context) -> clientHandler.accept(payload));
         registrar.playToClient(OpenTownColorsPayload.TYPE, OpenTownColorsPayload.STREAM_CODEC,
