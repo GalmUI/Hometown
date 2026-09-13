@@ -11,6 +11,7 @@ public record HistoryEvent(long sequenceNumber, UUID settlementId, Type type, lo
         Map<String,HistoryArgument> arguments) {
     public enum Type {
         TOWN_FOUNDED("history.hometown.town_founded"),
+        TOWN_HALL_ESTABLISHED("history.hometown.town_hall_established"),
         POPULATION_CHANGED("history.hometown.population_changed"),
         HOUSING_SHORTAGE_STARTED("history.hometown.housing_shortage_started"),
         HOUSING_SHORTAGE_RESOLVED("history.hometown.housing_shortage_resolved"),
