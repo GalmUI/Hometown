@@ -8,7 +8,7 @@ import net.minecraft.network.protocol.common.custom.CustomPacketPayload;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.item.DyeColor;
 
-/** Immutable server-authoritative snapshot used by the R3 M1 Town Administration screen. */
+/** Immutable server-authoritative snapshot used by the R3 Town Administration screen. */
 public record TownAdministrationSnapshotPayload(
         UUID settlementId,
         String townName,
@@ -19,6 +19,8 @@ public record TownAdministrationSnapshotPayload(
         boolean noticeBoardUnlocked,
         boolean civicProjectsUnlocked,
         boolean storageUnlocked,
+        boolean storageEstablished,
+        boolean storageActive,
         boolean animalFarmsUnlocked) implements CustomPacketPayload {
 
     public static final int WIRE_NAME_LIMIT = 256;
@@ -36,6 +38,8 @@ public record TownAdministrationSnapshotPayload(
                 buffer.writeBoolean(value.noticeBoardUnlocked());
                 buffer.writeBoolean(value.civicProjectsUnlocked());
                 buffer.writeBoolean(value.storageUnlocked());
+                buffer.writeBoolean(value.storageEstablished());
+                buffer.writeBoolean(value.storageActive());
                 buffer.writeBoolean(value.animalFarmsUnlocked());
             },
             buffer -> new TownAdministrationSnapshotPayload(
@@ -43,6 +47,8 @@ public record TownAdministrationSnapshotPayload(
                     buffer.readUtf(WIRE_NAME_LIMIT),
                     buffer.readEnum(DyeColor.class),
                     buffer.readEnum(DyeColor.class),
+                    buffer.readBoolean(),
+                    buffer.readBoolean(),
                     buffer.readBoolean(),
                     buffer.readBoolean(),
                     buffer.readBoolean(),
@@ -59,6 +65,12 @@ public record TownAdministrationSnapshotPayload(
         }
         if (townName.length() > WIRE_NAME_LIMIT) {
             throw new IllegalArgumentException("Town Administration town name exceeds wire limit");
+        }
+        if (storageEstablished && !storageUnlocked) {
+            throw new IllegalArgumentException("Established Storage must be unlocked");
+        }
+        if (storageActive && !storageEstablished) {
+            throw new IllegalArgumentException("Active Storage must be established");
         }
     }
 
