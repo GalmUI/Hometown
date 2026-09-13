@@ -34,7 +34,7 @@ public final class HometownNetworking {
         PacketDistributor.sendToServer(new RequestTownColorsPayload(hand, bellPosition));
     }
     public static void register(RegisterPayloadHandlersEvent event) {
-        var registrar = event.registrar("14");
+        var registrar = event.registrar("15");
         registrar.playToServer(RequestTownLedgerPayload.TYPE, RequestTownLedgerPayload.STREAM_CODEC, (payload, context) -> {
             if (context.player() instanceof ServerPlayer player) {
                 var response=dev.conner.hometown.settlement.TownLedgerService.respond(player,payload);
