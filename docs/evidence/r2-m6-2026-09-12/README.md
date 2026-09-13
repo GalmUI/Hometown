@@ -2,98 +2,196 @@
 
 Milestone: **Revision 2 M6 — Integration and delivery**
 
-Current status: **PARTIAL — automated/server gates green; required live UI/world/performance validation remains.**
+Current status: **FINAL OWNER UI RECHECK PENDING — all automated/server/world/performance gates are green; 0.9.1 final-label visual confirmation and O05 CPU metadata remain.**
 
-Playtest version: **0.9.0**
+Final playtest candidate: **0.9.1**
 
-Versioned 0.9.0 implementation head: `ff5d5fbd79999d1a2e3272c76db112b31d600dbd`
+Versioned 0.9.1 implementation/test head: `f013e6a5731e9566cbe7d83e1aca03fe4ecaee93`
 
 ## Acceptance audit
 
-`ACCEPTANCE_MATRIX.md` maps all 96 R2 acceptance IDs (B/Q/S/C/F/E/P/H/O) to targeted automated evidence, prior owner evidence, or a genuinely remaining M6 live/server/profile fixture.
+`ACCEPTANCE_MATRIX.md` maps all 96 R2 acceptance IDs (B/Q/S/C/F/E/P/H/O) to targeted automated evidence, prior owner evidence, or M6 live/server/profile fixtures.
 
-The audit found that most classification, arithmetic, state-machine, serialization, protocol, configuration, bounds and isolation cases already have targeted automated coverage. The remaining M6 blockers are operational: final integrated UI/client behavior, selected real world/loading/loot fixtures, final save/restart lifecycle, and measured representative/dense performance.
+The audit found that most classification, arithmetic, state-machine, serialization, protocol, configuration, bounds and isolation cases already had targeted automated coverage. M6 then closed the operational gaps with an integrated Ledger/UI pass, real unresolved-loot and unloaded-fringe fixtures, save/restart/reload, dedicated-server startup/reload, and measured representative/dense performance.
 
-`LIVE_VALIDATION.md` is the reproducible owner procedure for those remaining gates.
+`LIVE_VALIDATION.md` remains the reproducible owner procedure.
 
-## Normal automated gate
+## Final 0.9.1 automated gate
 
-GitHub Actions run **34726245824** on exact versioned `0.9.0` commit `ff5d5fbd79999d1a2e3272c76db112b31d600dbd` completed successfully.
+GitHub Actions run **34733522239** on exact `0.9.1` head `f013e6a5731e9566cbe7d83e1aca03fe4ecaee93` completed successfully.
 
-- Gradle `test`: **PASS**
+- Gradle `test`: **PASS — 206/206**
 - Gradle normal `build`: **PASS**
 - Java: 21
 - Minecraft: 1.21.1
 - NeoForge: 21.1.250
 
-Earlier M6 integration checkpoints also passed after adding the acceptance matrix, cached performance diagnostics, and configuration/datapack documentation.
+The first 0.9.1 run correctly caught two screen regressions whose assertions still named pre-polish localization strings. Those tests were updated to the intended final labels; no implementation behavior changed. The final exact head above is green.
+
+## O02 integrated Ledger/UI owner pass
+
+Owner performed a complete live Ledger tour in Oured on 0.9.0:
+
+- Overview
+- Residents
+- Development / Housing
+- Food / Reserves
+- Food / Variety
+- Food / Growing
+- Safety
+- Comfort
+- Commerce
+- Prosperity
+- History
+
+Navigation remained on the same observation while moving through pages: the visible observation age increased continuously from 1 second to 41 seconds instead of resetting on local tab/subpage changes. This is live evidence that Ledger navigation remained cached/local rather than silently rescanning.
+
+Displayed values were internally consistent across Housing, Food, Variety, Growing, Commerce and Prosperity. Prosperity's 0.8.1 point-contribution presentation and wrapped authority message remained correct.
+
+Four non-functional text truncations were found:
+
+- Food Variety heading `Stored Food Groups — Nutrition`
+- Food Growing explanatory hint
+- Safety block-light scope note
+- Commerce profession/trade scope note
+
+0.9.1 shortens only those English presentation labels; no world observation, scoring, protocol, persistence or gameplay behavior changed. Final owner visual confirmation of those four labels on 0.9.1 is still required before R2 COMPLETE.
+
+## B08 unresolved-loot non-mutation — PASS
+
+Owner created a controlled unresolved chest at block `112 -60 206` using vanilla village plains-house loot table `minecraft:chests/village/village_plains_house` and did not open the chest.
+
+Before the Ledger observation, `/data get block 112 -60 206 LootTable` showed the unresolved loot table. Hometown's Food view then reported:
+
+- `PARTIAL DATA`
+- `Unopened loot storage`
+- known stores/nutrition only
+
+After the Ledger observation, the same `/data get` command still returned `minecraft:chests/village/village_plains_house`.
+
+Result: **PASS.** Hometown observed the unresolved container without rolling/materializing its loot and correctly degraded Food authority instead of treating unknown contents as empty.
+
+## Q01/Q06 loaded-only / no-force-loading — PASS
+
+Owner lowered client render distance and observed Osea from fringe loaded scope. The Ledger visibly changed from the fully loaded dense-town state to a partial state and explicitly displayed `Partial counts: only loaded chunks are included.`
+
+A fresh cached profile from that partial observation reported:
+
+- generation 10
+- fresh elapsed: **2.913 ms**
+- population / beds: **8 / 0**
+- loaded / required town chunks: **45 / 81**
+- Comfort rooms: **0 assessed / 0 attempted**
+- entity work: **96 / 4096**
+- shared new-block work: **14,554 / 262,144**
+- Growing: 4 sections, 474 palette inspections, 14,080 positions
+
+The owner repeated the loaded-fringe observation with the same partial-loading result. Opening Hometown did not expand town coverage to 81/81 or restore unloaded beds/rooms as if those chunks had been forced in.
+
+Result: **PASS.** Unloaded scope produces explicit uncertainty/partial values rather than forced chunk loading or invented complete data.
 
 ## O05 performance diagnostic
 
-M6 added a diagnostic-only cached performance profile for a normal fresh Ledger observation.
+M6 added `/hometown debug performance [uuid]`, a diagnostic-only view of the most recent cached normal Ledger observation. The command performs no world scan and does not advance History.
 
-Command:
+### Representative village — Oured — PASS
 
-`/hometown debug performance [uuid]`
+Representative fixture characteristics across samples:
 
-Behavior:
+- radius 64
+- 3 residents / 7 enclosed beds
+- 81 / 81 town chunks loaded
+- 4 Food containers, 7 storage positions scanned
+- 7 Comfort rooms assessed/attempted
+- entity work roughly 42–56 / 4096
+- shared new-block work roughly 28,836–28,840 / 262,144
+- Growing: 7 sections, about 2,640 palette inspections, 25,600 positions
 
-- Timing begins immediately before the existing normal fresh Ledger collection and ends after History evaluation/final immutable History capture.
-- Timing and counters are memory-only and are never persisted as town truth.
-- Same-tick/cooldown reuse preserves the original observation timing rather than pretending a new scan occurred.
-- The performance command reads the player's cached normal Ledger observation; the command itself performs **no world scan** and does not advance History.
-- Player/server release removes the cached diagnostic state.
+Four distinct fresh observations were recorded:
 
-Reported evidence includes settlement/dimension/bell/radius, generation/observation time/age, elapsed milliseconds, population/enclosed beds, Food containers/storage scanned, Comfort room counts, loaded/required chunks, entity work, shared new-block work and Growing work counters.
+| Sample | Fresh elapsed |
+| --- | ---: |
+| 1 | 34.559 ms |
+| 2 | 8.588 ms |
+| 3 | 11.282 ms |
+| 4 | 7.205 ms |
 
-Implementation/test checkpoint `7589555f7fc7b47a1e8e0f5f29f07a2794f2b42d` passed the complete normal test/build workflow in Actions run **34725864946**.
+Average: **15.409 ms**  
+Worst observed: **34.559 ms**
 
-## O01/O04 dedicated-server and resource-reload smoke
+The R2 representative target is a typical fresh request below one 50 ms server tick. Oured is therefore **PASS** with significant headroom, including the slowest observed sample.
 
-Dedicated-server validation was intentionally performed on isolated branch `r2-m6-server-smoke`; that branch is test harness only and must not be merged.
+### Dense fixture — Osea — PASS
 
-Final RCON-based smoke workflow run **34726154745**, job **103640502723**, completed **PASS**.
+Owner expanded temporary town Osea into a materially denser live fixture. The measured dense state included:
 
-Observed behavior:
+- 38–39 residents
+- 15 beds
+- 14 scanned storage positions, with 1 qualifying Food container in the captured samples
+- 9 Comfort rooms assessed/attempted
+- entity work about 150–177 / 4096
+- shared new-block work about 15,736–15,760 / 262,144
+- Growing: 4 sections, about 345–369 palette inspections, 14,080 positions
+- 81 / 81 town chunks loaded
+
+Three distinct dense fresh observations were recorded:
+
+| Sample | Fresh elapsed |
+| --- | ---: |
+| 1 | 32.401 ms |
+| 2 | 9.679 ms |
+| 3 | 7.401 ms |
+
+Average: **16.494 ms**  
+Worst observed: **32.401 ms**
+
+Result: **PASS.** Work remained far below configured ceilings and all three dense observations also stayed below 50 ms. The higher resident/entity load did not produce an unbounded scan or hang.
+
+Test-machine CPU/model is still to be added to the final O05 record. Repository JVM defaults were unchanged during the measured tests unless the owner reports otherwise.
+
+## O01/O04 dedicated-server and resource-reload smoke — PASS
+
+Dedicated-server validation was performed on isolated branch `r2-m6-server-smoke`; that test harness is not part of production R2.
+
+RCON-based smoke workflow run **34726154745**, job **103640502723**, completed **PASS**:
 
 - Minecraft 1.21.1 dedicated NeoForge server started under Java 21.
-- Hometown loaded in the server mod list with no accidental client-class crash.
-- Server reached `Done (9.644s)! For help, type "help"`.
-- Local RCON issued the actual Minecraft `reload` command.
-- Server logged `[Rcon: Reloading!]`, then reloaded 1290 recipes and 1399 advancements.
-- Local RCON issued `stop`; server accepted shutdown.
-- Harness completed without a Hometown/client-dist/resource-reload failure.
+- Hometown loaded server-side with no client-class crash.
+- Server reached `Done`.
+- Actual Minecraft `reload` was issued through local RCON and completed.
+- Recipes/advancements reloaded successfully.
+- Actual `stop` command shut the server down cleanly.
 
-The isolated smoke used production-code checkpoint `7589555...`; subsequent `r2-m6` changes through exact 0.9.0 were documentation and the version stamp only. Exact 0.9.0 separately passed the normal complete test/build gate above.
+The later 0.9.1 change is localization/test-only and does not alter server runtime code.
+
+## Final singleplayer save/restart/reload lifecycle — PASS
+
+Owner confirmed the tested Hometown world and Ledger state survived:
+
+1. normal save and full client/world exit;
+2. reloading the saved world;
+3. reopening the town Ledger;
+4. in-world `/reload`;
+5. reopening/using the Ledger after reload.
+
+Result: **PASS.** No town identity loss, required reset, crash or reload failure was observed. This complements the earlier M5 Oured evidence for v1→v2 migration, durable History, founding preservation and no duplicate confirmed events.
 
 ## Configuration/tag delivery documentation
 
-`docs/CONFIGURATION_AND_DATAPACKS.md` now documents the supported R2 server configuration, exact Comfort/Food/Safety tag paths, version-1 Comfort state-predicate and custom-crop formats, reload behavior, compatibility boundary and M6 cached performance command.
+`docs/CONFIGURATION_AND_DATAPACKS.md` documents the supported R2 server configuration, Comfort/Food/Safety tag paths, version-1 Comfort state-predicate and custom-crop formats, reload behavior, compatibility boundary and cached M6 performance command.
 
-The documentation explicitly preserves the R2 boundary: Hometown requires no external furniture/farming/economy/NPC mod and does not provide fuzzy mod-name compatibility or gameplay effects.
-
-## Prior owner evidence reused by M6
+## Prior milestone evidence retained
 
 M5 owner validation already supplied real-world evidence for the highest-risk persistence/History path on Oured: v1→v2 save migration, founding preservation, Prosperity arithmetic, 200-tick Population confirmation, confirmed event persistence without duplication, Housing-shortage start/resolution and normal population changes.
 
-Earlier milestone owner testing also exercised real Comfort, Food Variety/Growing and Commerce observations. M6 still requires the final integrated spot-checks in `LIVE_VALIDATION.md`; prior evidence is not used to falsely mark an unexecuted final fixture PASS.
+Earlier owner testing also exercised real Comfort, Food Variety/Growing and Commerce observations. M6's final integrated pass confirmed those systems coexist in the same Ledger and one observation generation.
 
-## Remaining required gates
+## Remaining final gate
 
-M6 and Revision 2 are **not complete yet**. Before completion, owner/live evidence must close the remaining M6 LIVE / PROFILE items in the acceptance matrix, including:
+M6 is **not stamped COMPLETE yet** solely because 0.9.1 changed the four clipped player-facing labels after the main live UI sweep. Before completion:
 
-- final integrated Ledger/UI sweep across practical GUI scales and all Development/History navigation;
-- reversible cross-system regression spot-checks;
-- unresolved-loot non-mutation fixture;
-- loaded-fringe/no-force-loading observation fixture;
-- final 0.9.0 save/exit/reload and in-world `/reload` sanity;
-- representative Oured performance measurements using `/hometown debug performance`;
-- deliberately dense test-town performance measurement and bounded-ceiling behavior.
+1. install/pull/build `0.9.1`;
+2. visually confirm Food Variety, Food Growing, Safety and Commerce no longer clip those four labels at the practical GUI scale(s) used on the test client;
+3. record the test PC CPU/model for O05 provenance.
 
-The representative target is a typical fresh Ledger request below one 50 ms server tick on the documented test machine. A measured miss requires investigation; it must not be hidden by raising budgets.
-
-Any functional code/data fix discovered after owner testing starts requires a `0.9.1` patch build and targeted retest.
-
-## Current conclusion
-
-**M6 PARTIAL.** Automated integration, normal build, documentation, dedicated-server startup and real resource reload are green. The branch is ready for the 0.9.0 owner/live validation pass, but R2 must not be declared COMPLETE and R3 must not begin until every required remaining live/profile gate is PASS with evidence.
+If that targeted recheck passes, no known required R2 M6 acceptance item remains FAIL or NOT RUN and the milestone can be marked COMPLETE before beginning Revision 3.
