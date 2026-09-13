@@ -21,7 +21,9 @@ public record TownAdministrationSnapshotPayload(
         boolean storageUnlocked,
         boolean storageEstablished,
         boolean storageActive,
-        boolean animalFarmsUnlocked) implements CustomPacketPayload {
+        boolean animalFarmsUnlocked,
+        boolean animalFarmEstablished,
+        boolean animalFarmActive) implements CustomPacketPayload {
 
     public static final int WIRE_NAME_LIMIT = 256;
     public static final Type<TownAdministrationSnapshotPayload> TYPE = new Type<>(
@@ -41,12 +43,16 @@ public record TownAdministrationSnapshotPayload(
                 buffer.writeBoolean(value.storageEstablished());
                 buffer.writeBoolean(value.storageActive());
                 buffer.writeBoolean(value.animalFarmsUnlocked());
+                buffer.writeBoolean(value.animalFarmEstablished());
+                buffer.writeBoolean(value.animalFarmActive());
             },
             buffer -> new TownAdministrationSnapshotPayload(
                     buffer.readUUID(),
                     buffer.readUtf(WIRE_NAME_LIMIT),
                     buffer.readEnum(DyeColor.class),
                     buffer.readEnum(DyeColor.class),
+                    buffer.readBoolean(),
+                    buffer.readBoolean(),
                     buffer.readBoolean(),
                     buffer.readBoolean(),
                     buffer.readBoolean(),
@@ -71,6 +77,12 @@ public record TownAdministrationSnapshotPayload(
         }
         if (storageActive && !storageEstablished) {
             throw new IllegalArgumentException("Active Storage must be established");
+        }
+        if (animalFarmEstablished && !animalFarmsUnlocked) {
+            throw new IllegalArgumentException("Established Animal Farm must be unlocked");
+        }
+        if (animalFarmActive && !animalFarmEstablished) {
+            throw new IllegalArgumentException("Active Animal Farm must be established");
         }
     }
 
