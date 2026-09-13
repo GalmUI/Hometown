@@ -24,6 +24,8 @@ public final class HometownSavedData extends SavedData {
     private final Map<UUID, HistoryTownState> history = new LinkedHashMap<>();
     private final Map<UUID, TownCivicState> civic = new LinkedHashMap<>();
 
+    public record TownHallCommit(boolean changed, boolean firstEstablishment) {}
+
     public static HometownSavedData get(MinecraftServer server) {
         return server.overworld().getDataStorage().computeIfAbsent(
                 new SavedData.Factory<>(HometownSavedData::new, HometownSavedData::load, null), FILE_NAME);
@@ -54,6 +56,42 @@ public final class HometownSavedData extends SavedData {
         if(next.equals(current))return false;
         civic.put(id,next);setDirty();return true;
     }
+
+    /**
+     * One server-thread R3 transaction: persist the current Hall marker, permanent unlocks and the
+     * first-establishment History event together. Current Hall validity is never persisted here.
+     */
+    public TownHallCommit registerTownHall(UUID id, FacilityMarker marker, long gameTime) {
+        Objects.requireNonNull(marker);
+        Settlement town = getSettlement(id).orElseThrow(() -> new IllegalArgumentException("Unknown Hometown civic owner"));
+        if (marker.type() != FacilityType.TOWN_HALL || !marker.settlementId().equals(id)
+                || !marker.dimension().equals(town.dimension())) {
+            throw new IllegalArgumentException("Invalid Town Hall facility marker");
+        }
+        TownCivicState current = civicState(id);
+        if (!current.colorsConfigured()) throw new IllegalStateException("Town colors must be configured first");
+        boolean first = !current.isUnlocked(ProgressionUnlock.TOWN_HALL);
+        TownCivicState next = current.withFacility(marker).withUnlocked(EnumSet.of(
+                ProgressionUnlock.TOWN_HALL,
+                ProgressionUnlock.NOTICE_BOARD,
+                ProgressionUnlock.CIVIC_PROJECTS,
+                ProgressionUnlock.STORAGE,
+                ProgressionUnlock.ANIMAL_FARMS));
+        validateCivicOwner(id, next);
+        if (next.equals(current)) return new TownHallCommit(false, false);
+
+        if (first) {
+            var args = new LinkedHashMap<String,HistoryArgument>();
+            args.put("townName", HistoryArgument.string(town.name()));
+            args.put("markerPosition", HistoryArgument.blockPos(marker.markerPosition()));
+            args.put("dimension", HistoryArgument.resource(marker.dimension().location().toString()));
+            history(id).append(id, HistoryEvent.Type.TOWN_HALL_ESTABLISHED, gameTime, 0, args);
+        }
+        civic.put(id, next);
+        setDirty();
+        return new TownHallCommit(true, first);
+    }
+
     private static void validateCivicOwner(UUID id,TownCivicState state){
         for(var marker:state.facilities().values())if(!marker.settlementId().equals(id))
             throw new IllegalArgumentException("Foreign civic facility owner");
