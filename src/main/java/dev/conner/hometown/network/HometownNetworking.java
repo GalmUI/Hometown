@@ -3,6 +3,7 @@ package dev.conner.hometown.network;
 import dev.conner.hometown.settlement.SettlementManager;
 import dev.conner.hometown.settlement.TownColorService;
 import java.util.function.Consumer;
+import net.minecraft.core.BlockPos;
 import net.minecraft.server.level.ServerPlayer;
 import net.neoforged.neoforge.network.PacketDistributor;
 import net.neoforged.neoforge.network.event.RegisterPayloadHandlersEvent;
@@ -27,11 +28,11 @@ public final class HometownNetworking {
     }
     public static void setHistoryHandler(Consumer<HistorySnapshotPayload> history){historyHandler=history;}
     public static void requestLedger(net.minecraft.world.InteractionHand hand) { ledgerOpener.accept(hand); }
-    public static void requestTownColors(net.minecraft.world.InteractionHand hand) {
-        PacketDistributor.sendToServer(new RequestTownColorsPayload(hand));
+    public static void requestTownColors(net.minecraft.world.InteractionHand hand, BlockPos bellPosition) {
+        PacketDistributor.sendToServer(new RequestTownColorsPayload(hand, bellPosition));
     }
     public static void register(RegisterPayloadHandlersEvent event) {
-        var registrar = event.registrar("12");
+        var registrar = event.registrar("13");
         registrar.playToServer(RequestTownLedgerPayload.TYPE, RequestTownLedgerPayload.STREAM_CODEC, (payload, context) -> {
             if (context.player() instanceof ServerPlayer player) {
                 var response=dev.conner.hometown.settlement.TownLedgerService.respond(player,payload);
