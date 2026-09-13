@@ -264,7 +264,7 @@
   "hometown.commerce.employed": "Employed Adults: %s",
   "hometown.commerce.eligible": "Eligible Adults: %s",
   "hometown.commerce.unemployed": "Unemployed Adults: %s",
-  "hometown.commerce.scope": "Professions only; no trade data.",
+  "hometown.commerce.scope": "Profession counts only.",
   "hometown.commerce.partial": "Resident data is partial.",
   "hometown.commerce.no_eligible": "No employable adult residents were observed.",
   "hometown.commerce.professions": "Professions",
