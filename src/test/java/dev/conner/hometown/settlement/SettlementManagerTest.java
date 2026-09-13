@@ -3,6 +3,7 @@ package dev.conner.hometown.settlement;
 import com.mojang.authlib.GameProfile;
 import dev.conner.hometown.item.TownLedgerItem;
 import dev.conner.hometown.network.OpenTownNamingPayload;
+import java.util.Optional;
 import java.util.UUID;
 import net.minecraft.SharedConstants;
 import net.minecraft.core.BlockPos;
@@ -14,6 +15,7 @@ import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.entity.player.Abilities;
 import net.minecraft.world.entity.player.Inventory;
 import net.minecraft.world.inventory.AbstractContainerMenu;
+import net.minecraft.world.item.DyeColor;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.Items;
 import net.minecraft.world.level.Level;
@@ -30,6 +32,8 @@ import static org.mockito.ArgumentMatchers.*;
 import static org.mockito.Mockito.*;
 
 class SettlementManagerTest {
+    private static final DyeColor PRIMARY = DyeColor.BLUE;
+    private static final DyeColor SECONDARY = DyeColor.WHITE;
     private MinecraftServer server;
     private ServerLevel level;
     private SettlementManager manager;
@@ -61,6 +65,8 @@ class SettlementManagerTest {
         ledgers.when(() -> TownLedgerItem.deliver(any(), any())).thenAnswer(call -> {
             // Delivery must never precede creation, and the Book must still be intact here.
             assertEquals(1, data.all().size());
+            var stored = data.all().iterator().next();
+            assertTrue(data.civicState(stored.id()).colorsConfigured(), "new towns commit colors before Ledger delivery");
             ServerPlayer player = call.getArgument(0);
             assertEquals(3, player.getInventory().getItem(0).getCount());
             return true;
@@ -92,25 +98,42 @@ class SettlementManagerTest {
     }
 
     private OpenTownNamingPayload begin(ServerPlayer player) { return manager.beginFounding(player, bell).orElseThrow(); }
+    private Optional<Settlement> create(ServerPlayer player, BlockPos position, long nonce, String name) {
+        return manager.createSettlement(player, position, nonce, name, PRIMARY, SECONDARY);
+    }
+    private Optional<Settlement> create(ServerPlayer player, OpenTownNamingPayload attempt, String name) {
+        return create(player, bell, attempt.nonce(), name);
+    }
 
-    @Test void commitsThenDeliversThenConsumesExactlyOneBookAndRejectsReplay() {
+    @Test void commitsColorsThenDeliversThenConsumesExactlyOneBookAndRejectsReplay() {
         ServerPlayer player = player("Conner");
         var attempt = begin(player);
-        Settlement town = manager.createSettlement(player, bell, attempt.nonce(), " Oakridge ").orElseThrow();
+        Settlement town = create(player, attempt, " Oakridge ").orElseThrow();
         assertEquals("Oakridge", town.name());
         assertEquals(2, player.getInventory().getItem(0).getCount());
         assertEquals(town, data.getSettlement(town.id()).orElseThrow());
-        assertTrue(manager.createSettlement(player, bell, attempt.nonce(), "Other").isEmpty());
+        var civic = data.civicState(town.id());
+        assertEquals(PRIMARY, civic.primaryColor().orElseThrow());
+        assertEquals(SECONDARY, civic.secondaryColor().orElseThrow());
+        assertTrue(create(player, attempt, "Other").isEmpty());
         assertEquals(1, data.all().size());
         assertEquals(2, player.getInventory().getItem(0).getCount());
+    }
+
+    @Test void samePrimaryAndSecondaryCannotCreatePartialTown() {
+        ServerPlayer player = player("Conner");
+        var attempt = begin(player);
+        assertTrue(manager.createSettlement(player, bell, attempt.nonce(), "Oakridge", DyeColor.RED, DyeColor.RED).isEmpty());
+        assertTrue(data.all().isEmpty());
+        assertEquals(3, player.getInventory().getItem(0).getCount());
     }
 
     @Test void concurrentAttemptsAtSameBellCreateOneTownAndOnlyWinnerPays() {
         ServerPlayer a = player("Conner"), b = player("Alex");
         var first = begin(a);
         var second = begin(b);
-        assertTrue(manager.createSettlement(a, bell, first.nonce(), "Oakridge").isPresent());
-        assertTrue(manager.createSettlement(b, bell, second.nonce(), "Other").isEmpty());
+        assertTrue(create(a, first, "Oakridge").isPresent());
+        assertTrue(create(b, second, "Other").isEmpty());
         assertEquals(1, data.all().size());
         assertEquals(2, a.getInventory().getItem(0).getCount());
         assertEquals(3, b.getInventory().getItem(0).getCount());
@@ -118,16 +141,16 @@ class SettlementManagerTest {
 
     @Test void rejectsUnsolicitedWrongNonceWrongPositionAndCancelledSessions() {
         ServerPlayer player = player("Conner");
-        assertTrue(manager.createSettlement(player, bell, 0, "Forged").isEmpty());
+        assertTrue(create(player, bell, 0, "Forged").isEmpty());
         var attempt = begin(player);
-        assertTrue(manager.createSettlement(player, bell, attempt.nonce() + 1, "Forged").isEmpty());
+        assertTrue(create(player, bell, attempt.nonce() + 1, "Forged").isEmpty());
         when(level.getGameTime()).thenReturn(120L);
         attempt = begin(player);
-        assertTrue(manager.createSettlement(player, bell.offset(1, 0, 0), attempt.nonce(), "Forged").isEmpty());
+        assertTrue(create(player, bell.offset(1, 0, 0), attempt.nonce(), "Forged").isEmpty());
         when(level.getGameTime()).thenReturn(140L);
         attempt = begin(player);
         manager.cancel(player.getUUID());
-        assertTrue(manager.createSettlement(player, bell, attempt.nonce(), "Cancelled").isEmpty());
+        assertTrue(create(player, attempt, "Cancelled").isEmpty());
         assertTrue(data.all().isEmpty());
         assertEquals(3, player.getInventory().getItem(0).getCount());
     }
@@ -137,9 +160,9 @@ class SettlementManagerTest {
         var first = begin(a);
         var second = begin(b);
         a.getInventory().setItem(0, ItemStack.EMPTY);
-        assertTrue(manager.createSettlement(a, bell, first.nonce(), "No book").isEmpty());
+        assertTrue(create(a, first, "No book").isEmpty());
         when(level.getBlockState(bell)).thenReturn(Blocks.AIR.defaultBlockState());
-        assertTrue(manager.createSettlement(b, bell, second.nonce(), "No bell").isEmpty());
+        assertTrue(create(b, second, "No bell").isEmpty());
         assertTrue(data.all().isEmpty());
         assertEquals(3, b.getInventory().getItem(0).getCount());
     }
@@ -148,23 +171,23 @@ class SettlementManagerTest {
         ServerPlayer a = player("A"), b = player("B"), c = player("C"), d = player("D");
         var first = begin(a); var second = begin(b); var third = begin(c); var fourth = begin(d);
         when(a.distanceToSqr(any(Vec3.class))).thenReturn(65.0);
-        assertTrue(manager.createSettlement(a, bell, first.nonce(), "Far").isEmpty());
+        assertTrue(create(a, first, "Far").isEmpty());
         ServerLevel nether = mock(ServerLevel.class);
         when(nether.dimension()).thenReturn(Level.NETHER);
         when(b.serverLevel()).thenReturn(nether);
-        assertTrue(manager.createSettlement(b, bell, second.nonce(), "Wrong dimension").isEmpty());
-        assertTrue(manager.createSettlement(c, bell, third.nonce(), "§cInvalid").isEmpty());
+        assertTrue(create(b, second, "Wrong dimension").isEmpty());
+        assertTrue(create(c, third, "§cInvalid").isEmpty());
         when(level.getGameTime()).thenReturn(2501L);
-        assertTrue(manager.createSettlement(d, bell, fourth.nonce(), "Expired").isEmpty());
+        assertTrue(create(d, fourth, "Expired").isEmpty());
         assertTrue(data.all().isEmpty());
         for (ServerPlayer player : new ServerPlayer[]{a, b, c, d}) assertEquals(3, player.getInventory().getItem(0).getCount());
     }
 
-    @Test void failedLedgerDeliveryRollsBackTownAndKeepsBook() {
+    @Test void failedLedgerDeliveryRollsBackTownColorsAndKeepsBook() {
         ServerPlayer player = player("Conner");
         var attempt = begin(player);
         ledgers.when(() -> TownLedgerItem.deliver(any(), any())).thenReturn(false);
-        assertTrue(manager.createSettlement(player, bell, attempt.nonce(), "Oakridge").isEmpty());
+        assertTrue(create(player, attempt, "Oakridge").isEmpty());
         assertTrue(data.all().isEmpty());
         assertEquals(3, player.getInventory().getItem(0).getCount());
     }
@@ -173,7 +196,7 @@ class SettlementManagerTest {
         ServerPlayer player = player("Conner");
         player.getAbilities().instabuild = true;
         var attempt = begin(player);
-        assertTrue(manager.createSettlement(player, bell, attempt.nonce(), "Oakridge").isPresent());
+        assertTrue(create(player, attempt, "Oakridge").isPresent());
         assertEquals(3, player.getInventory().getItem(0).getCount());
     }
 
@@ -181,7 +204,7 @@ class SettlementManagerTest {
         rules.when(SettlementValidator.Rules::current).thenReturn(new SettlementValidator.Rules(64, 32, 0, 0, true, false));
         ServerPlayer player = player("Conner");
         var attempt = begin(player);
-        assertTrue(manager.createSettlement(player, bell, attempt.nonce(), "Oakridge").isPresent());
+        assertTrue(create(player, attempt, "Oakridge").isPresent());
         assertEquals(3, player.getInventory().getItem(0).getCount());
     }
 
@@ -190,7 +213,7 @@ class SettlementManagerTest {
         var attempt = begin(player);
         data.addSettlement(new Settlement(UUID.randomUUID(), "OAKRIDGE", Level.NETHER, bell, 64,
                 UUID.randomUUID(), "Alex", 0));
-        assertTrue(manager.createSettlement(player, bell, attempt.nonce(), "Oakridge").isEmpty());
+        assertTrue(create(player, attempt, "Oakridge").isEmpty());
         assertEquals(1, data.all().size());
         assertEquals(3, player.getInventory().getItem(0).getCount());
     }
@@ -199,7 +222,7 @@ class SettlementManagerTest {
         ServerPlayer player = player("Conner");
         var attempt = begin(player);
         rules.when(SettlementValidator.Rules::current).thenReturn(new SettlementValidator.Rules(64, 32, 2, 0, true, true));
-        assertTrue(manager.createSettlement(player, bell, attempt.nonce(), "Oakridge").isEmpty());
+        assertTrue(create(player, attempt, "Oakridge").isEmpty());
         assertTrue(data.all().isEmpty());
         assertEquals(3, player.getInventory().getItem(0).getCount());
     }
