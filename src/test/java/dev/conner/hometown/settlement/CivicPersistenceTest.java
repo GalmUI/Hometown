@@ -69,10 +69,10 @@ class CivicPersistenceTest {
         data.addSettlement(town);
         data.setDirty(false);
 
-        assertTrue(data.configureColors(town.id(), DyeColor.RED, DyeColor.GOLD));
+        assertTrue(data.configureColors(town.id(), DyeColor.RED, DyeColor.YELLOW));
         assertTrue(data.isDirty());
         data.setDirty(false);
-        assertFalse(data.configureColors(town.id(), DyeColor.RED, DyeColor.GOLD));
+        assertFalse(data.configureColors(town.id(), DyeColor.RED, DyeColor.YELLOW));
         assertFalse(data.isDirty());
         assertThrows(IllegalStateException.class, () -> data.configureColors(town.id(), DyeColor.BLACK, DyeColor.WHITE));
         assertFalse(data.isDirty());
