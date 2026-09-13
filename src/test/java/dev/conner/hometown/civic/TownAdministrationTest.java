@@ -24,7 +24,7 @@ class TownAdministrationTest {
         UUID id = UUID.randomUUID();
         var snapshot = new TownAdministrationSnapshotPayload(
                 id, "Osea", DyeColor.BLUE, DyeColor.WHITE,
-                true, true, true, true, true, true);
+                true, true, true, true, true, true, true, true);
         FriendlyByteBuf buffer = new FriendlyByteBuf(Unpooled.buffer());
         try {
             TownAdministrationSnapshotPayload.STREAM_CODEC.encode(buffer, snapshot);
@@ -32,13 +32,16 @@ class TownAdministrationTest {
             buffer.clear();
             assertThrows(IllegalArgumentException.class, () -> new TownAdministrationSnapshotPayload(
                     id, "Osea", DyeColor.BLUE, DyeColor.BLUE,
-                    true, true, true, true, true, true));
+                    true, true, true, true, true, true, true, true));
+            assertThrows(IllegalArgumentException.class, () -> new TownAdministrationSnapshotPayload(
+                    id, "Osea", DyeColor.BLUE, DyeColor.WHITE,
+                    true, true, true, true, true, false, true, true));
         } finally {
             buffer.release();
         }
     }
 
-    @Test void establishedHallSnapshotCarriesAllM1UnlocksWithoutInventingOtherState() {
+    @Test void establishedHallSnapshotCarriesUnlocksWithoutInventingStorageFacility() {
         HometownSavedData data = new HometownSavedData();
         UUID id = UUID.randomUUID();
         Settlement town = new Settlement(id, "Osea", Level.OVERWORLD, BlockPos.ZERO, 64,
@@ -58,6 +61,26 @@ class TownAdministrationTest {
         assertTrue(snapshot.noticeBoardUnlocked());
         assertTrue(snapshot.civicProjectsUnlocked());
         assertTrue(snapshot.storageUnlocked());
+        assertFalse(snapshot.storageEstablished());
+        assertFalse(snapshot.storageActive());
+        assertTrue(snapshot.animalFarmsUnlocked());
+    }
+
+    @Test void establishedStorageCanBeReportedActiveWithoutChangingUnlockSemantics() {
+        HometownSavedData data = new HometownSavedData();
+        UUID id = UUID.randomUUID();
+        Settlement town = new Settlement(id, "Osea", Level.OVERWORLD, BlockPos.ZERO, 64,
+                UUID.randomUUID(), "Founder", 0L);
+        data.addSettlement(town, DyeColor.BLUE, DyeColor.WHITE);
+        data.registerTownHall(id, new FacilityMarker(id, FacilityType.TOWN_HALL, Level.OVERWORLD,
+                new BlockPos(4, 64, 4), FacilityMarkerSide.FRONT), 24000L);
+        data.registerStorage(id, new FacilityMarker(id, FacilityType.STORAGE, Level.OVERWORLD,
+                new BlockPos(10, 64, 10), FacilityMarkerSide.FRONT), 48000L);
+
+        var snapshot = TownAdministrationService.snapshotFor(town, data.civicState(id), true);
+        assertTrue(snapshot.storageUnlocked());
+        assertTrue(snapshot.storageEstablished());
+        assertTrue(snapshot.storageActive());
         assertTrue(snapshot.animalFarmsUnlocked());
     }
 
