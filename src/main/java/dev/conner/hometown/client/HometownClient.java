@@ -36,6 +36,8 @@ public final class HometownClient {
             HometownNetworking.setHistoryHandler(payload -> {
                 if (Minecraft.getInstance().screen instanceof TownLedgerScreen screen) screen.receiveHistory(payload);
             });
+            HometownNetworking.setAdministrationHandler(payload ->
+                    Minecraft.getInstance().setScreen(new TownAdministrationScreen(payload)));
         });
     }
 }
