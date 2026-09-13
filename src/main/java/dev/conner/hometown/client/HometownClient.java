@@ -16,6 +16,9 @@ public final class HometownClient {
         event.enqueueWork(() -> {
             HometownNetworking.setClientHandler(payload ->
                     Minecraft.getInstance().setScreen(new TownNamingScreen(payload.bellPosition(), payload.nonce())));
+            HometownNetworking.setColorHandler(payload ->
+                    Minecraft.getInstance().setScreen(new TownColorSelectionScreen(
+                            payload.settlementId(), payload.townName(), payload.hand())));
             HometownNetworking.setLedgerHandlers(hand -> {
                 var screen = new TownLedgerScreen(hand);
                 Minecraft.getInstance().setScreen(screen);
