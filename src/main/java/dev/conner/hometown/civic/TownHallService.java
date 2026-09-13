@@ -90,7 +90,7 @@ public final class TownHallService {
         return true;
     }
 
-    /** Explicit revalidation used by later Administration access without persisting transient validity. */
+    /** Explicit revalidation used by Administration access without persisting transient validity. */
     public static TownHallQualifier.Result revalidate(ServerLevel level, Settlement town, FacilityMarker marker) {
         if (marker == null || marker.type() != FacilityType.TOWN_HALL || !marker.settlementId().equals(town.id())
                 || !marker.dimension().equals(level.dimension())) {
@@ -130,10 +130,10 @@ public final class TownHallService {
         return level.getChunkSource().getChunkNow(position.getX() >> 4, position.getZ() >> 4);
     }
 
-    private static String qualificationMessage(TownHallQualifier.Result result) {
+    public static String qualificationMessage(TownHallQualifier.Result result) {
         return switch (result.reason()) {
-            case ROOM_NOT_FOUND -> "The sign does not resolve to one enclosed Town Hall room.";
-            case ROOM_AMBIGUOUS -> "The sign touches more than one enclosed room; place it clearly within one Town Hall room.";
+            case ROOM_NOT_FOUND -> "The registered Town Hall sign does not resolve to one enclosed room.";
+            case ROOM_AMBIGUOUS -> "The registered Town Hall sign touches more than one enclosed room.";
             case ROOM_INCOMPLETE -> "The Town Hall cannot be checked completely because required room data is unavailable.";
             case FLOOR_AREA_TOO_SMALL -> "The Town Hall needs at least " + TownHallRules.MIN_USABLE_FLOOR_POSITIONS
                     + " usable floor positions. Found: " + result.usableFloorPositions() + ".";
