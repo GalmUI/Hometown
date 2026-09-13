@@ -51,10 +51,10 @@ public final class TownLedgerItem extends Item {
     @Override
     public InteractionResultHolder<ItemStack> use(Level level, Player player, InteractionHand hand) {
         ItemStack stack = player.getItemInHand(hand);
-        if (level.isClientSide()) {
-            if (player.isShiftKeyDown()) dev.conner.hometown.network.HometownNetworking.requestTownColors(hand);
-            else dev.conner.hometown.network.HometownNetworking.requestLedger(hand);
-        }
+        // Shift-use is reserved for deliberate civic/world interactions such as the founding bell.
+        // Do not consume air/random-block use or open town-color setup globally from the item itself.
+        if (player.isShiftKeyDown()) return InteractionResultHolder.pass(stack);
+        if (level.isClientSide()) dev.conner.hometown.network.HometownNetworking.requestLedger(hand);
         return InteractionResultHolder.sidedSuccess(stack, level.isClientSide());
     }
 }
