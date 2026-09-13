@@ -14,7 +14,7 @@ public final class TownAdministrationInteractionHandler {
 
     public static void onRightClick(PlayerInteractEvent.RightClickBlock event) {
         if (!event.getItemStack().is(HometownItems.TOWN_LEDGER.get())) return;
-        if (!event.getState().is(Blocks.LECTERN)) return;
+        if (!event.getLevel().getBlockState(event.getPos()).is(Blocks.LECTERN)) return;
 
         // While holding a Town Ledger, the Hall lectern gesture belongs to Hometown rather than vanilla lectern UI.
         event.setCanceled(true);
