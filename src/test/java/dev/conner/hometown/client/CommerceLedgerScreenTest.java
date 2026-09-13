@@ -67,7 +67,7 @@ class CommerceLedgerScreenTest {
             button(screen,"Development").onPress();button(screen,"Commerce").onPress();int before=requests.size();
             var first=draw(screen);assertTrue(first.contains("Commerce"));assertTrue(first.contains("Employment"));assertTrue(first.contains("ACTIVE"));assertTrue(first.contains("70%"));
             assertTrue(first.contains("Employed Adults: 7"));assertTrue(first.contains("Eligible Adults: 10"));assertTrue(first.contains("Unemployed Adults: 3"));assertTrue(first.contains("Diversity: 7"));
-            assertTrue(first.stream().anyMatch(text->text.startsWith("Observed professions")));assertTrue(first.contains("Professions page 1 / 2"));
+            assertTrue(first.stream().anyMatch(text->text.startsWith("Profession")));assertTrue(first.contains("Professions page 1 / 2"));
             Button next=screen.children().stream().filter(w->w instanceof Button b&&b.getMessage().getString().equals("→")).map(w->(Button)w).findFirst().orElseThrow();
             assertTrue(next.visible&&next.active);next.onPress();var second=draw(screen);assertTrue(second.contains("Professions page 2 / 2"));assertEquals(before,requests.size(),"Commerce tab and profession pagination must not request or rescan");
             screen.receiveCommerce(new CommerceSnapshotPayload(requestId,partial(base)));var partial=draw(screen);
