@@ -79,6 +79,15 @@ public final class HometownSavedData extends SavedData {
         setDirty();
     }
 
+    /** New R3 founding commits identity and validated color identity in one SavedData mutation. */
+    public void addSettlement(Settlement settlement, DyeColor primary, DyeColor secondary) {
+        TownCivicState initialCivic = TownCivicState.empty().withColors(primary, secondary);
+        insertUnique(settlement);
+        history.put(settlement.id(), foundingHistory(settlement));
+        civic.put(settlement.id(), initialCivic);
+        setDirty();
+    }
+
     private void insertUnique(Settlement settlement) {
         if (settlements.containsKey(settlement.id()) || findByName(settlement.name()).isPresent()
                 || findByBell(settlement.dimension(), settlement.bellPosition()).isPresent()) {
