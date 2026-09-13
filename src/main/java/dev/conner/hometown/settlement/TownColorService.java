@@ -1,31 +1,39 @@
 package dev.conner.hometown.settlement;
 
 import dev.conner.hometown.component.HometownDataComponents;
+import dev.conner.hometown.component.SettlementIdComponent;
 import dev.conner.hometown.item.HometownItems;
 import dev.conner.hometown.network.OpenTownColorsPayload;
 import dev.conner.hometown.network.RequestTownColorsPayload;
 import dev.conner.hometown.network.SubmitTownColorsPayload;
 import java.util.Locale;
 import java.util.Optional;
+import net.minecraft.core.component.DataComponentType;
 import net.minecraft.network.chat.Component;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.item.DyeColor;
+import net.minecraft.world.item.Item;
 
 /** Server-authoritative one-time town color configuration for existing/migrated towns. */
 public final class TownColorService {
     private TownColorService() {}
 
     public static Optional<OpenTownColorsPayload> begin(ServerPlayer player, RequestTownColorsPayload request) {
+        return begin(player, request, HometownItems.TOWN_LEDGER.get(), HometownDataComponents.SETTLEMENT_ID.get());
+    }
+
+    static Optional<OpenTownColorsPayload> begin(ServerPlayer player, RequestTownColorsPayload request,
+                                                  Item ledgerItem, DataComponentType<SettlementIdComponent> component) {
         var server = player.getServer();
         if (!server.isSameThread()) throw new IllegalStateException("Town color requests require the server thread");
         if (!player.isAlive()) return Optional.empty();
 
         var stack = player.getItemInHand(request.hand());
-        if (!stack.is(HometownItems.TOWN_LEDGER.get())) {
+        if (!stack.is(ledgerItem)) {
             player.sendSystemMessage(Component.literal("Hold the Town Ledger whose colors you want to configure."));
             return Optional.empty();
         }
-        var link = stack.get(HometownDataComponents.SETTLEMENT_ID.get());
+        var link = stack.get(component);
         if (link == null) {
             player.sendSystemMessage(Component.literal("This Town Ledger is not linked to a known Hometown."));
             return Optional.empty();
@@ -44,13 +52,18 @@ public final class TownColorService {
     }
 
     public static boolean submit(ServerPlayer player, SubmitTownColorsPayload request) {
+        return submit(player, request, HometownItems.TOWN_LEDGER.get(), HometownDataComponents.SETTLEMENT_ID.get());
+    }
+
+    static boolean submit(ServerPlayer player, SubmitTownColorsPayload request,
+                          Item ledgerItem, DataComponentType<SettlementIdComponent> component) {
         var server = player.getServer();
         if (!server.isSameThread()) throw new IllegalStateException("Town color mutations require the server thread");
         if (!player.isAlive()) return false;
 
         var stack = player.getItemInHand(request.hand());
-        if (!stack.is(HometownItems.TOWN_LEDGER.get())) return fail(player, "Hold the linked Town Ledger while saving town colors.");
-        var link = stack.get(HometownDataComponents.SETTLEMENT_ID.get());
+        if (!stack.is(ledgerItem)) return fail(player, "Hold the linked Town Ledger while saving town colors.");
+        var link = stack.get(component);
         if (link == null || !link.settlementId().equals(request.settlementId())) {
             return fail(player, "The held Town Ledger does not match this color-selection screen.");
         }
