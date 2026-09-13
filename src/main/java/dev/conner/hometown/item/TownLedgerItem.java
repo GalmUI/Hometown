@@ -51,7 +51,10 @@ public final class TownLedgerItem extends Item {
     @Override
     public InteractionResultHolder<ItemStack> use(Level level, Player player, InteractionHand hand) {
         ItemStack stack = player.getItemInHand(hand);
-        if (level.isClientSide()) dev.conner.hometown.network.HometownNetworking.requestLedger(hand);
+        if (level.isClientSide()) {
+            if (player.isShiftKeyDown()) dev.conner.hometown.network.HometownNetworking.requestTownColors(hand);
+            else dev.conner.hometown.network.HometownNetworking.requestLedger(hand);
+        }
         return InteractionResultHolder.sidedSuccess(stack, level.isClientSide());
     }
 }
