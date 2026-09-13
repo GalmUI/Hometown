@@ -27,8 +27,9 @@ class TownColorServiceTest {
         return DataComponentType.<SettlementIdComponent>builder().persistent(SettlementIdComponent.CODEC).build();
     }
 
-    private static Settlement town(String name) {
-        return new Settlement(UUID.randomUUID(), name, Level.OVERWORLD, BlockPos.ZERO, 64,
+    private static Settlement town(String name) { return town(name, BlockPos.ZERO); }
+    private static Settlement town(String name, BlockPos bell) {
+        return new Settlement(UUID.randomUUID(), name, Level.OVERWORLD, bell, 64,
                 UUID.randomUUID(), "Founder", 24000L);
     }
 
@@ -86,8 +87,8 @@ class TownColorServiceTest {
         when(player.isAlive()).thenReturn(true);
 
         var data = new HometownSavedData();
-        var first = town("Osea");
-        var second = town("Oured");
+        var first = town("Osea", BlockPos.ZERO);
+        var second = town("Oured", new BlockPos(256, 64, 0));
         data.addSettlement(first);
         data.addSettlement(second);
         data.setDirty(false);
