@@ -46,13 +46,16 @@ public final class TownAdministrationScreen extends Screen {
 
     @Override
     public void render(GuiGraphics graphics, int mouseX, int mouseY, float partialTick) {
-        renderBackground(graphics, mouseX, mouseY, partialTick);
+        // Keep the world visible but readable behind Administration. Do not call Screen#renderBackground here:
+        // the 1.21.1 blur/background pass can soften the custom panel and text on some render paths.
+        graphics.fill(0, 0, width, height, 0xA0000000);
+
         int panelWidth = Math.min(360, Math.max(260, width - 32));
         int panelHeight = Math.min(222, Math.max(196, height - 36));
         int x = (width - panelWidth) / 2;
         int y = Math.max(10, (height - panelHeight) / 2);
 
-        graphics.fill(x, y, x + panelWidth, y + panelHeight, 0xEE1C1C1C);
+        graphics.fill(x, y, x + panelWidth, y + panelHeight, 0xF61C1C1C);
         graphics.fill(x, y, x + panelWidth, y + 2, 0xFFB9A16E);
         graphics.fill(x, y + panelHeight - 2, x + panelWidth, y + panelHeight, 0xFF6D5B3A);
         graphics.fill(x, y, x + 2, y + panelHeight, 0xFFB9A16E);
