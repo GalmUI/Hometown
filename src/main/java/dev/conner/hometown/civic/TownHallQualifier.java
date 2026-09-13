@@ -49,9 +49,16 @@ public final class TownHallQualifier {
         LinkedHashMap<BlockPos, RoomGeometry> rooms = new LinkedHashMap<>();
         boolean incomplete = false;
 
+        // A standing/interior sign normally resolves from its own cell or an adjacent cell. A wall/hanging
+        // sign on the exterior face of a one-block-thick wall needs one extra step to reach the room behind
+        // the support block. Probe only the six axial rays at distances 0..2; this stays tiny/bounded and
+        // deliberately returns ROOM_AMBIGUOUS rather than guessing when a marker can resolve to two rooms.
         LinkedHashSet<BlockPos> candidates = new LinkedHashSet<>();
         candidates.add(markerPosition.immutable());
-        for (Direction direction : Direction.values()) candidates.add(markerPosition.relative(direction).immutable());
+        for (Direction direction : Direction.values()) {
+            candidates.add(markerPosition.relative(direction).immutable());
+            candidates.add(markerPosition.relative(direction, 2).immutable());
+        }
 
         for (BlockPos candidate : candidates) {
             RoomDetectionResult detected = detector.detectInterior(candidate);
