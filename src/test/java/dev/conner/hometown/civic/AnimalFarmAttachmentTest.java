@@ -45,6 +45,20 @@ class AnimalFarmAttachmentTest {
                 ? AnimalFarmQualifier.AttachmentCell.BUILDING : AnimalFarmQualifier.AttachmentCell.EMPTY);
     }
 
+    @Test void furnishingEitherFrontCornerDoesNotHideItsFoundationAttachment() {
+        for (int x : new int[] {1, 3}) {
+            solid.clear();
+            // A chest or loom is a collision boundary: the detector never visits the floor beneath it.
+            solid.add(new BlockPos(x, 65, 1));
+            RoomGeometry room = barn();
+            assertFalse(room.boundary().contains(new BlockPos(x, 64, 1)));
+            var scan = scan(room, paddock(64));
+            assertEquals(Set.of(new BlockPos(0, 64, -1), new BlockPos(4, 64, -1)),
+                    scan.attachments(), "Furnished corner x=" + x);
+            assertTrue(AnimalFarmQualifier.hasEnclosedPaddock(scan.building(), paddock(64)));
+        }
+    }
+
     @Test void groundLevelFencesAtOmittedFoundationCornersQualify() {
         RoomGeometry room = barn();
         assertFalse(room.boundary().contains(new BlockPos(0, 64, 0)));
@@ -103,12 +117,41 @@ class AnimalFarmAttachmentTest {
         Set<BlockPos> reads = new HashSet<>();
         var scan = AnimalFarmQualifier.scanAttachments(room, p -> {
             assertTrue(reads.add(p), "Duplicate world read: " + p);
-            assertTrue(room.boundary().stream().anyMatch(b -> b.getY() == p.getY()
+            assertTrue(p.getY() >= 64);
+            assertTrue(room.boundary().stream().anyMatch(b -> b.getY() - p.getY() >= 0 && b.getY() - p.getY() <= 1
                     && Math.abs(b.getX() - p.getX()) <= 2 && Math.abs(b.getZ() - p.getZ()) <= 2));
             return p.equals(new BlockPos(0, 64, 0)) ? AnimalFarmQualifier.AttachmentCell.UNAVAILABLE
                     : solid.contains(p) ? AnimalFarmQualifier.AttachmentCell.BUILDING
                     : AnimalFarmQualifier.AttachmentCell.EMPTY;
         });
         assertTrue(scan.incomplete());
+    }
+
+    @Test void foundationRecoveryDoesNotUseGroundBelowTheRoom() {
+        solid.add(new BlockPos(1, 65, 1));
+        RoomGeometry room = barn();
+        Set<BlockPos> fence = paddock(63);
+        var scan = AnimalFarmQualifier.scanAttachments(room, p -> {
+            assertTrue(p.getY() >= 64, "Must not inspect surrounding terrain below the floor");
+            return fence.contains(p) ? AnimalFarmQualifier.AttachmentCell.BARRIER
+                    : solid.contains(p) || p.getY() < 64 ? AnimalFarmQualifier.AttachmentCell.BUILDING
+                    : AnimalFarmQualifier.AttachmentCell.EMPTY;
+        });
+        assertTrue(scan.attachments().isEmpty());
+    }
+
+    @Test void missingOrUnloadedFoundationCannotSupplyTheSecondAttachment() {
+        solid.add(new BlockPos(1, 65, 1));
+        RoomGeometry room = barn();
+        BlockPos corner = new BlockPos(0, 64, 0);
+        Set<BlockPos> fence = paddock(64);
+        solid.remove(corner);
+        assertEquals(1, scan(room, fence).attachments().size());
+        var scan = AnimalFarmQualifier.scanAttachments(room, p -> p.equals(corner)
+                ? AnimalFarmQualifier.AttachmentCell.UNAVAILABLE : fence.contains(p)
+                ? AnimalFarmQualifier.AttachmentCell.BARRIER : solid.contains(p)
+                ? AnimalFarmQualifier.AttachmentCell.BUILDING : AnimalFarmQualifier.AttachmentCell.EMPTY);
+        assertTrue(scan.incomplete());
+        assertEquals(1, scan.attachments().size());
     }
 }

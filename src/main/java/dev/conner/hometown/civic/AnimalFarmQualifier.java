@@ -194,6 +194,8 @@ public final class AnimalFarmQualifier {
 
     /** The detector boundary is an interior-facing shell, not the complete exterior facade.
      * Extend it once through actual boundary blocks (corners/porch), never through air or fences.
+     * Furniture can hide the floor beneath it, so include one level down, but never below the
+     * detected floor. This recovers foundation corners without treating surrounding ground as a building.
      * Only those proven blocks may also close the paddock; the search halo itself cannot. */
     static AttachmentScan scanAttachments(RoomGeometry room, Function<BlockPos, AttachmentCell> read) {
         Set<BlockPos> building = new LinkedHashSet<>(room.boundary());
@@ -201,12 +203,13 @@ public final class AnimalFarmQualifier {
         Set<BlockPos> attachments = new LinkedHashSet<>();
         Set<BlockPos> skirt = new LinkedHashSet<>();
         var cells = new LinkedHashMap<BlockPos, AttachmentCell>();
+        int floorY = building.stream().mapToInt(BlockPos::getY).min().orElse(Integer.MAX_VALUE);
         for (BlockPos boundary : room.boundary()) {
-            for (int dx = -1; dx <= 1; dx++) for (int dz = -1; dz <= 1; dz++) {
-                BlockPos candidate = boundary.offset(dx, 0, dz).immutable();
-                if (building.contains(candidate)) continue;
+            for (int dy = -1; dy <= 0; dy++) for (int dx = -1; dx <= 1; dx++) for (int dz = -1; dz <= 1; dz++) {
+                BlockPos candidate = boundary.offset(dx, dy, dz).immutable();
+                if (candidate.getY() < floorY || building.contains(candidate)) continue;
                 AttachmentCell cell = cells.computeIfAbsent(candidate, read);
-                if (cell == AttachmentCell.BARRIER && Math.abs(dx) + Math.abs(dz) == 1) attachments.add(candidate);
+                if (cell == AttachmentCell.BARRIER && dy == 0 && Math.abs(dx) + Math.abs(dz) == 1) attachments.add(candidate);
                 if (cell == AttachmentCell.BUILDING) skirt.add(candidate);
             }
         }
