@@ -2,23 +2,23 @@
 
 Milestone: **Revision 2 M6 — Integration and delivery**
 
-Current status: **FINAL OWNER UI RECHECK PENDING — all automated/server/world/performance gates are green; 0.9.1 final-label visual confirmation and O05 CPU metadata remain.**
+Current status: **COMPLETE — all required automated, server, live-world, UI, lifecycle, loading, unresolved-loot and performance gates are PASS.**
 
-Final playtest candidate: **0.9.1**
+Final playtest version: **0.9.1**
 
-Versioned 0.9.1 implementation/test head: `f013e6a5731e9566cbe7d83e1aca03fe4ecaee93`
+Final implementation/test head before evidence-only closure: `f013e6a5731e9566cbe7d83e1aca03fe4ecaee93`
 
 ## Acceptance audit
 
 `ACCEPTANCE_MATRIX.md` maps all 96 R2 acceptance IDs (B/Q/S/C/F/E/P/H/O) to targeted automated evidence, prior owner evidence, or M6 live/server/profile fixtures.
 
-The audit found that most classification, arithmetic, state-machine, serialization, protocol, configuration, bounds and isolation cases already had targeted automated coverage. M6 then closed the operational gaps with an integrated Ledger/UI pass, real unresolved-loot and unloaded-fringe fixtures, save/restart/reload, dedicated-server startup/reload, and measured representative/dense performance.
+The audit found that most classification, arithmetic, state-machine, serialization, protocol, configuration, bounds and isolation cases already had targeted automated coverage. M6 closed the remaining operational gaps with an integrated Ledger/UI pass, real unresolved-loot and unloaded-fringe fixtures, save/restart/reload, dedicated-server startup/reload, and measured representative/dense performance.
 
-`LIVE_VALIDATION.md` remains the reproducible owner procedure.
+`LIVE_VALIDATION.md` remains the reproducible owner procedure used for the final live pass.
 
-## Final 0.9.1 automated gate
+## Final 0.9.1 automated gate — PASS
 
-GitHub Actions run **34733522239** on exact `0.9.1` head `f013e6a5731e9566cbe7d83e1aca03fe4ecaee93` completed successfully.
+GitHub Actions run **34733522239** on exact `0.9.1` implementation/test head `f013e6a5731e9566cbe7d83e1aca03fe4ecaee93` completed successfully.
 
 - Gradle `test`: **PASS — 206/206**
 - Gradle normal `build`: **PASS**
@@ -26,11 +26,11 @@ GitHub Actions run **34733522239** on exact `0.9.1` head `f013e6a5731e9566cbe7d8
 - Minecraft: 1.21.1
 - NeoForge: 21.1.250
 
-The first 0.9.1 run correctly caught two screen regressions whose assertions still named pre-polish localization strings. Those tests were updated to the intended final labels; no implementation behavior changed. The final exact head above is green.
+The first 0.9.1 run correctly caught two screen regressions whose assertions still named pre-polish localization strings. Those tests were updated to the intended final labels; no implementation behavior changed. The exact implementation/test head above is green.
 
-## O02 integrated Ledger/UI owner pass
+## O02 integrated Ledger/UI owner pass — PASS
 
-Owner performed a complete live Ledger tour in Oured on 0.9.0:
+Owner performed a complete live Ledger tour in Oured/Osea across:
 
 - Overview
 - Residents
@@ -44,18 +44,20 @@ Owner performed a complete live Ledger tour in Oured on 0.9.0:
 - Prosperity
 - History
 
-Navigation remained on the same observation while moving through pages: the visible observation age increased continuously from 1 second to 41 seconds instead of resetting on local tab/subpage changes. This is live evidence that Ledger navigation remained cached/local rather than silently rescanning.
+Navigation remained on the same observation while moving through pages: visible observation age increased continuously instead of resetting on local tab/subpage changes. This is live evidence that Ledger navigation remained cached/local rather than silently rescanning.
 
-Displayed values were internally consistent across Housing, Food, Variety, Growing, Commerce and Prosperity. Prosperity's 0.8.1 point-contribution presentation and wrapped authority message remained correct.
+Displayed values were internally consistent across Housing, Food, Variety, Growing, Commerce and Prosperity. Prosperity's point-contribution presentation and wrapped authority message remained correct.
 
-Four non-functional text truncations were found:
+The 0.9.0 integrated sweep found four non-functional long labels. 0.9.1 shortened only those English presentation strings. Owner then visually confirmed the exact final 0.9.1 labels render cleanly at the practical test GUI scale:
 
-- Food Variety heading `Stored Food Groups — Nutrition`
-- Food Growing explanatory hint
-- Safety block-light scope note
-- Commerce profession/trade scope note
+- Food Variety: `Food Groups`
+- Food Growing: `Current crop counts only.`
+- Safety: `Block-light check only.`
+- Commerce: `Profession counts only.`
 
-0.9.1 shortens only those English presentation labels; no world observation, scoring, protocol, persistence or gameplay behavior changed. Final owner visual confirmation of those four labels on 0.9.1 is still required before R2 COMPLETE.
+Result: **PASS.** No clipping/overlap remains in the four targeted final labels.
+
+Some long dynamic Food-group rows can still ellipsize by design when the actual data text exceeds a book column; that is normal bounded presentation rather than the fixed explanatory-label defect addressed by 0.9.1.
 
 ## B08 unresolved-loot non-mutation — PASS
 
@@ -90,11 +92,17 @@ The owner repeated the loaded-fringe observation with the same partial-loading r
 
 Result: **PASS.** Unloaded scope produces explicit uncertainty/partial values rather than forced chunk loading or invented complete data.
 
-## O05 performance diagnostic
+## O05 performance diagnostic — PASS
 
 M6 added `/hometown debug performance [uuid]`, a diagnostic-only view of the most recent cached normal Ledger observation. The command performs no world scan and does not advance History.
 
-### Representative village — Oured — PASS
+Owner-reported test machine:
+
+- CPU: **AMD Ryzen 9 3900X**
+- Minecraft/Java memory allocation: **approximately 6 GB**
+- No different repository Gradle JVM setting was reported for the measured client playtests.
+
+### Representative village — Oured
 
 Representative fixture characteristics across samples:
 
@@ -119,9 +127,9 @@ Four distinct fresh observations were recorded:
 Average: **15.409 ms**  
 Worst observed: **34.559 ms**
 
-The R2 representative target is a typical fresh request below one 50 ms server tick. Oured is therefore **PASS** with significant headroom, including the slowest observed sample.
+The R2 representative target is a typical fresh request below one 50 ms server tick. Oured therefore **PASS** with significant headroom, including the slowest observed sample.
 
-### Dense fixture — Osea — PASS
+### Dense fixture — Osea
 
 Owner expanded temporary town Osea into a materially denser live fixture. The measured dense state included:
 
@@ -146,8 +154,6 @@ Average: **16.494 ms**
 Worst observed: **32.401 ms**
 
 Result: **PASS.** Work remained far below configured ceilings and all three dense observations also stayed below 50 ms. The higher resident/entity load did not produce an unbounded scan or hang.
-
-Test-machine CPU/model is still to be added to the final O05 record. Repository JVM defaults were unchanged during the measured tests unless the owner reports otherwise.
 
 ## O01/O04 dedicated-server and resource-reload smoke — PASS
 
@@ -182,16 +188,14 @@ Result: **PASS.** No town identity loss, required reset, crash or reload failure
 
 ## Prior milestone evidence retained
 
-M5 owner validation already supplied real-world evidence for the highest-risk persistence/History path on Oured: v1→v2 save migration, founding preservation, Prosperity arithmetic, 200-tick Population confirmation, confirmed event persistence without duplication, Housing-shortage start/resolution and normal population changes.
+M5 owner validation supplied real-world evidence for the highest-risk persistence/History path on Oured: v1→v2 save migration, founding preservation, Prosperity arithmetic, 200-tick Population confirmation, confirmed event persistence without duplication, Housing-shortage start/resolution and normal population changes.
 
 Earlier owner testing also exercised real Comfort, Food Variety/Growing and Commerce observations. M6's final integrated pass confirmed those systems coexist in the same Ledger and one observation generation.
 
-## Remaining final gate
+## Final conclusion
 
-M6 is **not stamped COMPLETE yet** solely because 0.9.1 changed the four clipped player-facing labels after the main live UI sweep. Before completion:
+**R2 M6 COMPLETE. Revision 2 COMPLETE.**
 
-1. install/pull/build `0.9.1`;
-2. visually confirm Food Variety, Food Growing, Safety and Commerce no longer clip those four labels at the practical GUI scale(s) used on the test client;
-3. record the test PC CPU/model for O05 provenance.
+Every required R2 M6 acceptance gate represented in the acceptance matrix is backed by automated, dedicated-server, prior-live or final owner-live evidence. No required item remains FAIL or NOT RUN.
 
-If that targeted recheck passes, no known required R2 M6 acceptance item remains FAIL or NOT RUN and the milestone can be marked COMPLETE before beginning Revision 3.
+The final R2 playtest artifact is **Hometown 0.9.1**. Revision 3 may now begin on a new branch from the accepted R2 head after the normal milestone integration/merge step.
