@@ -37,6 +37,8 @@ final class HistoryLedgerView {
         return switch(event.type()) {
             case TOWN_FOUNDED -> Component.translatable(event.translationKey(),
                     text(a,"townName","Town"),text(a,"founderName","Unknown"));
+            case TOWN_HALL_ESTABLISHED -> Component.translatable(event.translationKey(),
+                    text(a,"townName","Town"));
             case POPULATION_CHANGED -> Component.translatable(event.translationKey(),
                     intValue(a,"previousPopulation"),intValue(a,"newPopulation"));
             case HOUSING_SHORTAGE_STARTED, HOUSING_SHORTAGE_RESOLVED -> Component.translatable(event.translationKey(),
