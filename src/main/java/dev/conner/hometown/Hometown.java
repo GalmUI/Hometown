@@ -7,6 +7,7 @@ import dev.conner.hometown.command.M6DebugCommands;
 import dev.conner.hometown.component.HometownDataComponents;
 import dev.conner.hometown.config.HometownServerConfig;
 import dev.conner.hometown.interaction.BellInteractionHandler;
+import dev.conner.hometown.interaction.TownAdministrationInteractionHandler;
 import dev.conner.hometown.interaction.TownHallInteractionHandler;
 import dev.conner.hometown.item.HometownItems;
 import dev.conner.hometown.network.HometownNetworking;
@@ -32,6 +33,7 @@ public final class Hometown {
         container.registerConfig(ModConfig.Type.SERVER, HometownServerConfig.SPEC);
         NeoForge.EVENT_BUS.addListener(BellInteractionHandler::onRightClick);
         NeoForge.EVENT_BUS.addListener(TownHallInteractionHandler::onRightClick);
+        NeoForge.EVENT_BUS.addListener(TownAdministrationInteractionHandler::onRightClick);
         NeoForge.EVENT_BUS.addListener(HometownDebugCommands::register);
         NeoForge.EVENT_BUS.addListener(M5DebugCommands::register);
         NeoForge.EVENT_BUS.addListener(M6DebugCommands::register);
