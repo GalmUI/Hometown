@@ -68,13 +68,8 @@ public final class FacilityDetailService {
                         "Civic administration and town-wide progression.",
                         "Use the linked Town Ledger on the Hall lectern for Town Administration.");
             }
-            case ANIMAL_FARM -> {
-                var result = AnimalFarmService.revalidate(level, town, marker);
-                yield genericSnapshot(town, civic, marker, result.qualified(),
-                        result.qualified() ? null : AnimalFarmService.qualificationMessage(result),
-                        "Livestock production and animal-based town supplies.",
-                        "Detailed Animal Farm diagnostics are the next facility-screen slice.");
-            }
+            case ANIMAL_FARM -> animalFarmSnapshotFor(
+                    town, civic, marker, AnimalFarmService.revalidate(level, town, marker));
         };
     }
 
@@ -100,6 +95,68 @@ public final class FacilityDetailService {
         lines.add(Line.section("Role"));
         lines.add(Line.note("Primary town food reserve. Daily Meal consumption will draw from this registered facility.", Tone.NORMAL));
         return payload(town, civic, marker.type(), active, lines);
+    }
+
+    static FacilityDetailSnapshotPayload animalFarmSnapshotFor(
+            Settlement town, TownCivicState civic, FacilityMarker marker, AnimalFarmQualifier.Result result) {
+        boolean active = result.qualified();
+        boolean buildingQualified = result.storageBlocks() >= AnimalFarmRules.MIN_STORAGE_BLOCKS
+                && result.looms() >= AnimalFarmRules.MIN_LOOMS
+                && result.reason() != AnimalFarmQualifier.Reason.ROOM_NOT_FOUND
+                && result.reason() != AnimalFarmQualifier.Reason.ROOM_AMBIGUOUS
+                && result.reason() != AnimalFarmQualifier.Reason.ROOM_INCOMPLETE;
+        ArrayList<Line> lines = new ArrayList<>();
+        addStatus(lines, marker, active);
+
+        lines.add(Line.section("Facility"));
+        lines.add(Line.row("Farm building", buildingQualified ? "Qualified" : "Unavailable",
+                buildingQualified ? Tone.GOOD : Tone.WARNING));
+        lines.add(Line.row("Recognized storage",
+                result.storageBlocks() + " / " + AnimalFarmRules.MIN_STORAGE_BLOCKS,
+                result.storageBlocks() >= AnimalFarmRules.MIN_STORAGE_BLOCKS ? Tone.GOOD : Tone.WARNING));
+        lines.add(Line.row("Looms",
+                result.looms() + " / " + AnimalFarmRules.MIN_LOOMS,
+                result.looms() >= AnimalFarmRules.MIN_LOOMS ? Tone.GOOD : Tone.WARNING));
+
+        lines.add(Line.section("Paddock"));
+        if (buildingQualified) {
+            lines.add(Line.row("Building connections",
+                    result.paddockAttachments() + " / " + AnimalFarmRules.MIN_PADDOCK_ATTACHMENTS,
+                    result.paddockAttachments() >= AnimalFarmRules.MIN_PADDOCK_ATTACHMENTS ? Tone.GOOD : Tone.WARNING));
+            lines.add(Line.row("Connected fences/gates",
+                    result.paddockBarriers() + " / " + AnimalFarmRules.MIN_PADDOCK_BARRIERS,
+                    result.paddockBarriers() >= AnimalFarmRules.MIN_PADDOCK_BARRIERS ? Tone.GOOD : Tone.WARNING));
+            String enclosure = enclosureLabel(result);
+            lines.add(Line.row("Enclosure", enclosure,
+                    result.paddockEnclosed() ? Tone.GOOD : Tone.WARNING));
+        } else {
+            lines.add(Line.row("Building connections", "Not evaluated", Tone.MUTED));
+            lines.add(Line.row("Connected fences/gates", "Not evaluated", Tone.MUTED));
+            lines.add(Line.row("Enclosure", "Not evaluated", Tone.MUTED));
+        }
+
+        if (!active) {
+            lines.add(Line.section("Diagnostics"));
+            lines.add(Line.note(AnimalFarmService.qualificationMessage(result), Tone.WARNING));
+        }
+
+        lines.add(Line.section("Livestock"));
+        lines.add(Line.row("Production", "Not yet active", Tone.MUTED));
+        lines.add(Line.row("Animals", "Not yet tracked", Tone.MUTED));
+        lines.add(Line.section("Role"));
+        lines.add(Line.note("Livestock production and animal-based town supplies.", Tone.NORMAL));
+        return payload(town, civic, marker.type(), active, lines);
+    }
+
+    private static String enclosureLabel(AnimalFarmQualifier.Result result) {
+        if (result.paddockEnclosed()) return "Closed";
+        return switch (result.reason()) {
+            case PADDOCK_OPEN -> "Open";
+            case PADDOCK_INCOMPLETE -> "Unavailable";
+            case PADDOCK_TRACE_LIMIT_REACHED, PADDOCK_SCAN_LIMIT_REACHED -> "Validation limit";
+            case NOT_ENOUGH_PADDOCK_ATTACHMENTS, NOT_ENOUGH_PADDOCK_BARRIERS -> "Not qualified";
+            default -> "Not evaluated";
+        };
     }
 
     private static FacilityDetailSnapshotPayload genericSnapshot(

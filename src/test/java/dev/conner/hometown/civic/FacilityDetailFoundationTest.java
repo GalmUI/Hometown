@@ -76,4 +76,58 @@ class FacilityDetailFoundationTest {
         assertTrue(snapshot.lines().stream().anyMatch(line -> line.value().contains("Storage needs at least")));
         assertTrue(data.civicState(id).facility(FacilityType.STORAGE).isPresent());
     }
+
+    @Test void animalFarmDetailReportsBuildingPaddockAndPendingLivestock() {
+        HometownSavedData data = new HometownSavedData();
+        UUID id = UUID.randomUUID();
+        Settlement town = new Settlement(id, "Osea", Level.OVERWORLD, BlockPos.ZERO, 64,
+                UUID.randomUUID(), "Founder", 0L);
+        data.addSettlement(town, DyeColor.BLUE, DyeColor.WHITE);
+        data.registerTownHall(id, new FacilityMarker(id, FacilityType.TOWN_HALL, Level.OVERWORLD,
+                new BlockPos(4, 64, 4), FacilityMarkerSide.FRONT), 24000L);
+        FacilityMarker farm = new FacilityMarker(id, FacilityType.ANIMAL_FARM, Level.OVERWORLD,
+                new BlockPos(14, 64, 14), FacilityMarkerSide.FRONT);
+        data.registerAnimalFarm(id, farm, 48000L);
+
+        var qualified = new AnimalFarmQualifier.Result(true, AnimalFarmQualifier.Reason.QUALIFIED,
+                null, AnimalFarmRules.MIN_STORAGE_BLOCKS, AnimalFarmRules.MIN_LOOMS,
+                AnimalFarmRules.MIN_PADDOCK_ATTACHMENTS, 24, true);
+        var snapshot = FacilityDetailService.animalFarmSnapshotFor(town, data.civicState(id), farm, qualified);
+        assertEquals(FacilityType.ANIMAL_FARM, snapshot.facilityType());
+        assertTrue(snapshot.active());
+        assertTrue(hasRow(snapshot, "Farm building", "Qualified"));
+        assertTrue(hasRow(snapshot, "Recognized storage", "1 / 1"));
+        assertTrue(hasRow(snapshot, "Looms", "1 / 1"));
+        assertTrue(hasRow(snapshot, "Building connections", "2 / 2"));
+        assertTrue(hasRow(snapshot, "Connected fences/gates", "24 / 16"));
+        assertTrue(hasRow(snapshot, "Enclosure", "Closed"));
+        assertTrue(hasRow(snapshot, "Production", "Not yet active"));
+        assertTrue(hasRow(snapshot, "Animals", "Not yet tracked"));
+    }
+
+    @Test void unavailableAnimalFarmDetailExplainsOpenPaddockWithoutLosingEstablishment() {
+        HometownSavedData data = new HometownSavedData();
+        UUID id = UUID.randomUUID();
+        Settlement town = new Settlement(id, "Osea", Level.OVERWORLD, BlockPos.ZERO, 64,
+                UUID.randomUUID(), "Founder", 0L);
+        data.addSettlement(town, DyeColor.BLUE, DyeColor.WHITE);
+        data.registerTownHall(id, new FacilityMarker(id, FacilityType.TOWN_HALL, Level.OVERWORLD,
+                new BlockPos(4, 64, 4), FacilityMarkerSide.FRONT), 24000L);
+        FacilityMarker farm = new FacilityMarker(id, FacilityType.ANIMAL_FARM, Level.OVERWORLD,
+                new BlockPos(14, 64, 14), FacilityMarkerSide.FRONT);
+        data.registerAnimalFarm(id, farm, 48000L);
+
+        var failed = new AnimalFarmQualifier.Result(false, AnimalFarmQualifier.Reason.PADDOCK_OPEN,
+                null, AnimalFarmRules.MIN_STORAGE_BLOCKS, AnimalFarmRules.MIN_LOOMS,
+                AnimalFarmRules.MIN_PADDOCK_ATTACHMENTS, 24, false);
+        var snapshot = FacilityDetailService.animalFarmSnapshotFor(town, data.civicState(id), farm, failed);
+        assertFalse(snapshot.active());
+        assertTrue(hasRow(snapshot, "Enclosure", "Open"));
+        assertTrue(snapshot.lines().stream().anyMatch(line -> line.value().contains("does not form an enclosed paddock")));
+        assertTrue(data.civicState(id).facility(FacilityType.ANIMAL_FARM).isPresent());
+    }
+
+    private static boolean hasRow(FacilityDetailSnapshotPayload snapshot, String label, String value) {
+        return snapshot.lines().stream().anyMatch(line -> line.label().equals(label) && line.value().equals(value));
+    }
 }

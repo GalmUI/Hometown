@@ -19,11 +19,11 @@ New systems should place information at the narrowest useful level instead of co
 - Only the exact persisted sign face (`FRONT` or `BACK`) is the registered civic marker face.
 - A damaged facility remains permanently established but the detail screen reports current `Unavailable` state and diagnostics.
 
-## First implementation slice — 0.10.10
+## 0.10.10 — facility-detail foundation
 
-The generic facility-detail payload and screen are introduced with Storage as the first detailed implementation.
+The generic facility-detail payload and screen were introduced with Storage as the first detailed implementation.
 
-Storage currently reports:
+Storage reports:
 
 - established/current active state;
 - persisted sign position;
@@ -34,6 +34,19 @@ Storage currently reports:
 - Daily Meal as an explicitly pending operation;
 - its role as the primary future town food reserve.
 
-Town Hall and Animal Farm signs use the same generic screen foundation with current live validity and role notes. Animal Farm receives its full building-specific detail slice next.
+## 0.10.11 — Animal Farm detail and long-screen behavior
 
-Facility screens are observational in this slice. They do not mutate inventories, progression, or facility state.
+Animal Farm now reports its full current structural qualification:
+
+- farm-building qualification;
+- recognized storage and loom requirements;
+- paddock building connections;
+- connected fence/gate count;
+- enclosure state;
+- exact current diagnostic when unavailable;
+- livestock production and animal tracking as explicitly pending operations;
+- its role as livestock production and animal-based town supply.
+
+Facility detail remains observational. It does not mutate inventories, progression, or facility state.
+
+Facility-detail content is scrollable when the player's GUI scale leaves too little vertical room. No server data is dropped merely because a facility has more detail than fits on one screen. This also ensures Storage can expose its Daily Meal placeholder and role instead of replacing lower rows with a generic clipping message.

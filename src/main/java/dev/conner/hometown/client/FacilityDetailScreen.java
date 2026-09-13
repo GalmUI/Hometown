@@ -12,6 +12,7 @@ import net.minecraft.network.chat.Component;
 /** Read-only building-level view opened from a registered Hometown facility sign. */
 public final class FacilityDetailScreen extends Screen {
     private final FacilityDetailSnapshotPayload snapshot;
+    private int scrollOffset;
 
     public FacilityDetailScreen(FacilityDetailSnapshotPayload snapshot) {
         super(Component.literal("Facility Detail"));
@@ -47,33 +48,70 @@ public final class FacilityDetailScreen extends Screen {
                 width / 2, y + 29, snapshot.active() ? 0xFF9ED184 : 0xFFE0B16A);
 
         int left = x + 16;
-        int right = x + panelWidth - 16;
-        int cursor = y + 49;
-        int bottom = y + panelHeight - 14;
-        boolean clipped = false;
+        int right = x + panelWidth - 22;
+        int contentTop = y + 49;
+        int contentBottom = y + panelHeight - 14;
+        int viewportHeight = Math.max(1, contentBottom - contentTop);
+        int contentHeight = contentHeight(snapshot.lines());
+        int maxScroll = scrollLimit(contentHeight, viewportHeight);
+        scrollOffset = Math.clamp(scrollOffset, 0, maxScroll);
+
+        graphics.enableScissor(left, contentTop, x + panelWidth - 10, contentBottom);
+        int cursor = contentTop - scrollOffset;
         for (Line line : snapshot.lines()) {
-            int needed = line.kind() == LineKind.NOTE ? 28 : line.kind() == LineKind.SECTION ? 18 : 20;
-            if (cursor + needed > bottom) { clipped = true; break; }
+            int needed = lineHeight(line);
             if (line.kind() == LineKind.SECTION) {
                 graphics.drawString(font, Component.literal(line.label()), left, cursor + 3, 0xFFF4E8CC, false);
                 graphics.fill(left, cursor + 14, right, cursor + 15, 0x443F3A31);
-                cursor += 18;
             } else if (line.kind() == LineKind.ROW) {
                 graphics.fill(left, cursor, right, cursor + 18, 0x552F2F2F);
                 graphics.drawString(font, Component.literal(line.label()), left + 6, cursor + 5, 0xFFE6E0D2, false);
                 String value = fit(line.value(), Math.max(70, (right - left) / 2 - 12));
                 int valueWidth = font.width(value);
                 graphics.drawString(font, Component.literal(value), right - valueWidth - 6, cursor + 5, color(line.tone()), false);
-                cursor += 20;
             } else {
                 graphics.drawWordWrap(font, Component.literal(line.value()), left + 6, cursor + 2,
                         right - left - 12, color(line.tone()));
-                cursor += 28;
             }
+            cursor += needed;
         }
-        if (clipped) graphics.drawString(font, Component.literal("Additional detail omitted from this first facility view."),
-                left, bottom - 9, 0xFF9F9F9F, false);
+        graphics.disableScissor();
+
+        if (maxScroll > 0) {
+            int trackX = x + panelWidth - 8;
+            graphics.fill(trackX, contentTop, trackX + 2, contentBottom, 0x553F3A31);
+            int thumbHeight = Math.max(12, viewportHeight * viewportHeight / Math.max(viewportHeight, contentHeight));
+            int travel = Math.max(0, viewportHeight - thumbHeight);
+            int thumbY = contentTop + (maxScroll == 0 ? 0 : travel * scrollOffset / maxScroll);
+            graphics.fill(trackX, thumbY, trackX + 2, thumbY + thumbHeight, 0xFFB9A16E);
+            graphics.drawString(font, Component.literal("Scroll for more"), left, contentBottom + 2, 0xFF9F9F9F, false);
+        }
+
         super.render(graphics, mouseX, mouseY, partialTick);
+    }
+
+    @Override
+    public boolean mouseScrolled(double mouseX, double mouseY, double scrollX, double scrollY) {
+        int viewportHeight = Math.max(1, Math.min(310, Math.max(220, height - 28)) - 63);
+        int maxScroll = scrollLimit(contentHeight(snapshot.lines()), viewportHeight);
+        if (maxScroll <= 0) return super.mouseScrolled(mouseX, mouseY, scrollX, scrollY);
+        int next = scrollOffset - (int)Math.round(scrollY * 24.0);
+        scrollOffset = Math.clamp(next, 0, maxScroll);
+        return true;
+    }
+
+    static int lineHeight(Line line) {
+        return line.kind() == LineKind.NOTE ? 28 : line.kind() == LineKind.SECTION ? 18 : 20;
+    }
+
+    static int contentHeight(java.util.List<Line> lines) {
+        int height = 0;
+        for (Line line : lines) height += lineHeight(line);
+        return height;
+    }
+
+    static int scrollLimit(int contentHeight, int viewportHeight) {
+        return Math.max(0, contentHeight - Math.max(0, viewportHeight));
     }
 
     private String fit(String text, int width) {
