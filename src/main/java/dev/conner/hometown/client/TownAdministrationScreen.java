@@ -115,28 +115,30 @@ public final class TownAdministrationScreen extends Screen {
                 "Notice Board", snapshot.noticeBoardUnlocked(), true);
         progressionRow(graphics, left, contentY + 66, rowWidth,
                 "Civic Projects", snapshot.civicProjectsUnlocked(), true);
-        storageRow(graphics, left, contentY + 90, rowWidth);
-        progressionRow(graphics, left, contentY + 114, rowWidth,
-                "Animal Farms", snapshot.animalFarmsUnlocked(), true);
+        facilityRow(graphics, left, contentY + 90, rowWidth, "Storage",
+                snapshot.storageUnlocked(), snapshot.storageEstablished(), snapshot.storageActive());
+        facilityRow(graphics, left, contentY + 114, rowWidth, "Animal Farms",
+                snapshot.animalFarmsUnlocked(), snapshot.animalFarmEstablished(), snapshot.animalFarmActive());
     }
 
-    private void storageRow(GuiGraphics graphics, int x, int y, int width) {
+    private void facilityRow(GuiGraphics graphics, int x, int y, int width, String name,
+                             boolean unlocked, boolean established, boolean active) {
         String status;
         int color;
-        if (!snapshot.storageUnlocked()) {
+        if (!unlocked) {
             status = "Locked";
             color = 0xFFB0B0B0;
-        } else if (!snapshot.storageEstablished()) {
+        } else if (!established) {
             status = "Unlocked — not established";
             color = 0xFFE0B16A;
-        } else if (snapshot.storageActive()) {
+        } else if (active) {
             status = "Established — Active";
             color = 0xFF9ED184;
         } else {
             status = "Established — Unavailable";
             color = 0xFFE0B16A;
         }
-        statusRow(graphics, x, y, width, "Storage", status, color);
+        statusRow(graphics, x, y, width, name, status, color);
     }
 
     private void progressionRow(GuiGraphics graphics, int x, int y, int width,
