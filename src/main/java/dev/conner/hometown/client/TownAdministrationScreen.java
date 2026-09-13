@@ -44,10 +44,18 @@ public final class TownAdministrationScreen extends Screen {
         if (progressionButton != null) progressionButton.active = page != Page.PROGRESSION;
     }
 
+    /**
+     * Screen#render invokes this before rendering widgets. Administration draws its own dimmer and panel,
+     * so the vanilla 1.21.1 blur/background pass must stay disabled for this screen.
+     */
+    @Override
+    public void renderBackground(GuiGraphics graphics, int mouseX, int mouseY, float partialTick) {
+        // Intentionally empty.
+    }
+
     @Override
     public void render(GuiGraphics graphics, int mouseX, int mouseY, float partialTick) {
-        // Keep the world visible but readable behind Administration. Do not call Screen#renderBackground here:
-        // the 1.21.1 blur/background pass can soften the custom panel and text on some render paths.
+        // Keep the world visible but readable behind Administration without invoking Minecraft's blur pass.
         graphics.fill(0, 0, width, height, 0xA0000000);
 
         int panelWidth = Math.min(360, Math.max(260, width - 32));
@@ -72,6 +80,7 @@ public final class TownAdministrationScreen extends Screen {
         if (page == Page.OVERVIEW) renderOverview(graphics, x, y, panelWidth);
         else renderProgression(graphics, x, y, panelWidth);
 
+        // Screen#render now reaches our no-op renderBackground override, then draws only the widgets on top.
         super.render(graphics, mouseX, mouseY, partialTick);
     }
 
