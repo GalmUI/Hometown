@@ -75,9 +75,15 @@ public final class TownAdministrationService {
             return fail(player, "Use the lectern inside the registered Town Hall to open Administration.");
         }
 
+        return Optional.of(snapshotFor(town, civic));
+    }
+
+    static TownAdministrationSnapshotPayload snapshotFor(Settlement town, TownCivicState civic) {
+        Objects.requireNonNull(town);
+        Objects.requireNonNull(civic);
         var primary = civic.primaryColor().orElseThrow();
         var secondary = civic.secondaryColor().orElseThrow();
-        return Optional.of(new TownAdministrationSnapshotPayload(
+        return new TownAdministrationSnapshotPayload(
                 town.id(),
                 town.name(),
                 primary,
@@ -87,7 +93,7 @@ public final class TownAdministrationService {
                 civic.isUnlocked(ProgressionUnlock.NOTICE_BOARD),
                 civic.isUnlocked(ProgressionUnlock.CIVIC_PROJECTS),
                 civic.isUnlocked(ProgressionUnlock.STORAGE),
-                civic.isUnlocked(ProgressionUnlock.ANIMAL_FARMS)));
+                civic.isUnlocked(ProgressionUnlock.ANIMAL_FARMS));
     }
 
     static boolean isLecternInValidatedHall(TownHallQualifier.Result validation, BlockPos lecternPosition) {
