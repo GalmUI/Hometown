@@ -18,10 +18,13 @@ class HistoryPersistenceTest {
         var founding=history.events().getFirst();assertEquals(HistoryEvent.Type.TOWN_FOUNDED,founding.type());assertEquals(2,founding.observedDay());
         assertEquals("Oldtown",founding.arguments().get("townName").value());assertEquals("Alex",founding.arguments().get("founderName").value());
         for(var domain:HistoryTownState.Domain.values())assertFalse(history.domain(domain).baselineInitialized(),"migration must not invent derived baselines");
+        assertFalse(migrated.getCivicState(town.id()).orElseThrow().colorsConfigured(),"migration must not invent town colors");
+        assertTrue(migrated.getCivicState(town.id()).orElseThrow().unlocks().isEmpty(),"migration must not invent R3 progression");
 
-        var v2=migrated.save(new CompoundTag(),null);assertEquals(2,v2.getInt("DataVersion"));
-        var reloaded=HometownSavedData.load(v2,null);assertFalse(reloaded.isDirty(),"unchanged v2 restart must not look like a migration");
+        var v3=migrated.save(new CompoundTag(),null);assertEquals(3,v3.getInt("DataVersion"));
+        var reloaded=HometownSavedData.load(v3,null);assertFalse(reloaded.isDirty(),"unchanged v3 restart must not look like a migration");
         assertEquals(town,reloaded.getSettlement(town.id()).orElseThrow());assertEquals(founding,reloaded.getHistory(town.id()).orElseThrow().events().getFirst());
+        assertFalse(reloaded.getCivicState(town.id()).orElseThrow().colorsConfigured());
     }
 
     @Test void H12_eventStateRoundTripsTypedArgumentsRevisionsAndNextSequence(){
