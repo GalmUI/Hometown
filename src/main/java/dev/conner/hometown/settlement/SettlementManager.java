@@ -13,6 +13,7 @@ import net.minecraft.network.chat.Component;
 import net.minecraft.resources.ResourceKey;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.level.ServerPlayer;
+import net.minecraft.world.item.DyeColor;
 import net.minecraft.world.item.Items;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.level.block.BellBlock;
@@ -56,13 +57,18 @@ public final class SettlementManager {
         return Optional.of(new OpenTownNamingPayload(session.bell(), session.nonce()));
     }
 
-    public Optional<Settlement> createSettlement(ServerPlayer player, BlockPos bell, long nonce, String requestedName) {
+    public Optional<Settlement> createSettlement(ServerPlayer player, BlockPos bell, long nonce, String requestedName,
+                                                  DyeColor primary, DyeColor secondary) {
         requireServerThread();
         // A submission consumes its session, including failures. Re-open the bell to try again.
         Pending session = pending.remove(player.getUUID());
         if (session == null || session.nonce() != nonce || !session.bell().equals(bell)
                 || !session.dimension().equals(player.serverLevel().dimension())
                 || server.overworld().getGameTime() > session.expires()) return fail(player, "session");
+        if (primary == null || secondary == null || primary == secondary) {
+            player.sendSystemMessage(Component.literal("Choose two different town colors."));
+            return Optional.empty();
+        }
         String name;
         try { name = TownNames.validate(requestedName); }
         catch (IllegalArgumentException ex) {
@@ -82,7 +88,7 @@ public final class SettlementManager {
         Settlement settlement = new Settlement(UUID.randomUUID(), name, player.serverLevel().dimension(), bell,
                 rules.radius(), player.getUUID(), player.getGameProfile().getName(), server.overworld().getGameTime());
         var ledger = TownLedgerItem.create(settlement);
-        data.addSettlement(settlement);
+        data.addSettlement(settlement, primary, secondary);
         if (!TownLedgerItem.deliver(player, ledger)) {
             data.removeSettlement(settlement.id());
             return fail(player, "delivery");
@@ -93,8 +99,8 @@ public final class SettlementManager {
         player.containerMenu.broadcastChanges();
         ((BellBlock)Blocks.BELL).attemptToRing(player, player.serverLevel(), bell, null);
         player.sendSystemMessage(Component.translatable("hometown.founded", name));
-        Hometown.LOGGER.info("Created Hometown '{}' [{}] at {} {} {} {}", name, settlement.id(),
-                settlement.dimension().location(), bell.getX(), bell.getY(), bell.getZ());
+        Hometown.LOGGER.info("Created Hometown '{}' [{}] at {} {} {} {} with colors {}/{}", name, settlement.id(),
+                settlement.dimension().location(), bell.getX(), bell.getY(), bell.getZ(), primary, secondary);
         return Optional.of(settlement);
     }
 
