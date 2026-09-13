@@ -14,6 +14,7 @@ import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Objects;
 import java.util.Set;
+import java.util.function.Function;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
 import net.minecraft.server.level.ServerLevel;
@@ -88,25 +89,22 @@ public final class AnimalFarmQualifier {
             return new Result(false, Reason.NO_LOOM, room, storage, looms, 0, 0, false);
         }
 
-        LinkedHashSet<BlockPos> attachments = new LinkedHashSet<>();
-        boolean attachmentUnknown = false;
-        for (BlockPos boundary : room.boundary()) {
-            for (Direction direction : Direction.Plane.HORIZONTAL) {
-                BlockPos candidate = boundary.relative(direction);
-                if (room.boundary().contains(candidate) || room.interior().contains(candidate)) continue;
-                BlockState candidateState = state(level, candidate);
-                if (candidateState == null) {
-                    attachmentUnknown = true;
-                    continue;
-                }
-                if (candidateState.is(AnimalFarmRules.PADDOCK_BARRIERS)) attachments.add(candidate.immutable());
-            }
-        }
+        LoadedRoomWorld attachmentWorld = new LoadedRoomWorld(level);
+        AttachmentScan attachmentScan = scanAttachments(room, position -> {
+            if (!town.contains(level.dimension(), position)) return AttachmentCell.EMPTY;
+            BlockState block = state(level, position);
+            if (block == null) return AttachmentCell.UNAVAILABLE;
+            if (block.is(AnimalFarmRules.PADDOCK_BARRIERS)) return AttachmentCell.BARRIER;
+            RoomDetector.Cell cell = attachmentWorld.cell(position);
+            return !cell.available() ? AttachmentCell.UNAVAILABLE
+                    : cell.boundary() ? AttachmentCell.BUILDING : AttachmentCell.EMPTY;
+        });
+        Set<BlockPos> attachments = attachmentScan.attachments();
 
         int bestAttachments = 0;
         int bestBarriers = 0;
         boolean anyOpen = false;
-        boolean anyIncomplete = attachmentUnknown;
+        boolean anyIncomplete = attachmentScan.incomplete();
         boolean traceLimit = false;
         boolean scanLimit = false;
         Set<BlockPos> visitedComponents = new HashSet<>();
@@ -125,11 +123,12 @@ public final class AnimalFarmQualifier {
             bestAttachments = Math.max(bestAttachments, componentAttachments);
             bestBarriers = Math.max(bestBarriers, trace.barriers().size());
 
-            EnclosureStatus enclosure = enclosureStatus(room, trace.barriers());
+            EnclosureStatus enclosure = enclosureStatus(attachmentScan.building(), trace.barriers());
             if (enclosure == EnclosureStatus.LIMIT_REACHED) scanLimit = true;
             if (enclosure == EnclosureStatus.OPEN) anyOpen = true;
 
-            if (componentAttachments >= AnimalFarmRules.MIN_PADDOCK_ATTACHMENTS
+            if (!attachmentScan.incomplete() && !trace.incomplete() && !trace.limitReached()
+                    && componentAttachments >= AnimalFarmRules.MIN_PADDOCK_ATTACHMENTS
                     && trace.barriers().size() >= AnimalFarmRules.MIN_PADDOCK_BARRIERS
                     && enclosure == EnclosureStatus.ENCLOSED) {
                 return new Result(true, Reason.QUALIFIED, room, storage, looms,
@@ -189,6 +188,39 @@ public final class AnimalFarmQualifier {
     }
 
     private record RoomResolution(RoomGeometry room, Reason reason) {}
+
+    enum AttachmentCell { EMPTY, BUILDING, BARRIER, UNAVAILABLE }
+    record AttachmentScan(Set<BlockPos> attachments, Set<BlockPos> building, boolean incomplete) {}
+
+    /** The detector boundary is an interior-facing shell, not the complete exterior facade.
+     * Extend it once through actual boundary blocks (corners/porch), never through air or fences.
+     * Only those proven blocks may also close the paddock; the search halo itself cannot. */
+    static AttachmentScan scanAttachments(RoomGeometry room, Function<BlockPos, AttachmentCell> read) {
+        Set<BlockPos> building = new LinkedHashSet<>(room.boundary());
+        building.addAll(room.interior());
+        Set<BlockPos> attachments = new LinkedHashSet<>();
+        Set<BlockPos> skirt = new LinkedHashSet<>();
+        var cells = new LinkedHashMap<BlockPos, AttachmentCell>();
+        for (BlockPos boundary : room.boundary()) {
+            for (int dx = -1; dx <= 1; dx++) for (int dz = -1; dz <= 1; dz++) {
+                BlockPos candidate = boundary.offset(dx, 0, dz).immutable();
+                if (building.contains(candidate)) continue;
+                AttachmentCell cell = cells.computeIfAbsent(candidate, read);
+                if (cell == AttachmentCell.BARRIER && Math.abs(dx) + Math.abs(dz) == 1) attachments.add(candidate);
+                if (cell == AttachmentCell.BUILDING) skirt.add(candidate);
+            }
+        }
+        building.addAll(skirt);
+        for (BlockPos edge : skirt) {
+            for (Direction direction : Direction.Plane.HORIZONTAL) {
+                BlockPos candidate = edge.relative(direction).immutable();
+                if (building.contains(candidate)) continue;
+                if (cells.computeIfAbsent(candidate, read) == AttachmentCell.BARRIER) attachments.add(candidate);
+            }
+        }
+        return new AttachmentScan(Set.copyOf(attachments), Set.copyOf(building),
+                cells.containsValue(AttachmentCell.UNAVAILABLE));
+    }
 
     private static Trace trace(ServerLevel level, Settlement town, BlockPos start) {
         ArrayDeque<BlockPos> queue = new ArrayDeque<>();
