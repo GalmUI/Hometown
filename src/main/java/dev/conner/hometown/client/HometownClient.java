@@ -38,6 +38,8 @@ public final class HometownClient {
             });
             HometownNetworking.setAdministrationHandler(payload ->
                     Minecraft.getInstance().setScreen(new TownAdministrationScreen(payload)));
+            HometownNetworking.setFacilityDetailHandler(payload ->
+                    Minecraft.getInstance().setScreen(new FacilityDetailScreen(payload)));
         });
     }
 }
