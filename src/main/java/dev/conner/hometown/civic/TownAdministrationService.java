@@ -75,25 +75,34 @@ public final class TownAdministrationService {
             return fail(player, "Use the lectern inside the registered Town Hall to open Administration.");
         }
 
-        // Build one immutable Administration snapshot. Storage is revalidated once here when it exists;
-        // client-side page changes operate only on this snapshot and never rescan the world.
+        // Build one immutable Administration snapshot. Each registered facility is explicitly revalidated
+        // once here; client-side tab navigation never rescans the world.
         boolean storageActive = civic.facility(FacilityType.STORAGE)
                 .map(storage -> StorageService.revalidate(level, town, storage).qualified())
                 .orElse(false);
-        return Optional.of(snapshotFor(town, civic, storageActive));
+        boolean animalFarmActive = civic.facility(FacilityType.ANIMAL_FARM)
+                .map(farm -> AnimalFarmService.revalidate(level, town, farm).qualified())
+                .orElse(false);
+        return Optional.of(snapshotFor(town, civic, storageActive, animalFarmActive));
     }
 
     static TownAdministrationSnapshotPayload snapshotFor(Settlement town, TownCivicState civic) {
-        return snapshotFor(town, civic, false);
+        return snapshotFor(town, civic, false, false);
     }
 
     static TownAdministrationSnapshotPayload snapshotFor(
             Settlement town, TownCivicState civic, boolean storageActive) {
+        return snapshotFor(town, civic, storageActive, false);
+    }
+
+    static TownAdministrationSnapshotPayload snapshotFor(
+            Settlement town, TownCivicState civic, boolean storageActive, boolean animalFarmActive) {
         Objects.requireNonNull(town);
         Objects.requireNonNull(civic);
         var primary = civic.primaryColor().orElseThrow();
         var secondary = civic.secondaryColor().orElseThrow();
         boolean storageEstablished = civic.facility(FacilityType.STORAGE).isPresent();
+        boolean animalFarmEstablished = civic.facility(FacilityType.ANIMAL_FARM).isPresent();
         return new TownAdministrationSnapshotPayload(
                 town.id(),
                 town.name(),
@@ -106,7 +115,9 @@ public final class TownAdministrationService {
                 civic.isUnlocked(ProgressionUnlock.STORAGE),
                 storageEstablished,
                 storageEstablished && storageActive,
-                civic.isUnlocked(ProgressionUnlock.ANIMAL_FARMS));
+                civic.isUnlocked(ProgressionUnlock.ANIMAL_FARMS),
+                animalFarmEstablished,
+                animalFarmEstablished && animalFarmActive);
     }
 
     static boolean isLecternInValidatedHall(TownHallQualifier.Result validation, BlockPos lecternPosition) {
