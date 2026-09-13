@@ -3,9 +3,11 @@ package dev.conner.hometown.civic;
 import dev.conner.hometown.history.HistoryEvent;
 import dev.conner.hometown.settlement.HometownSavedData;
 import dev.conner.hometown.settlement.Settlement;
+import java.util.Set;
 import java.util.UUID;
 import net.minecraft.SharedConstants;
 import net.minecraft.core.BlockPos;
+import net.minecraft.nbt.CompoundTag;
 import net.minecraft.server.Bootstrap;
 import net.minecraft.world.item.DyeColor;
 import net.minecraft.world.level.Level;
@@ -39,7 +41,9 @@ class TownHallFoundationTest {
         assertTrue(firstCommit.firstEstablishment());
         assertTrue(data.isDirty());
         var civic = data.civicState(id);
-        for (ProgressionUnlock unlock : ProgressionUnlock.values()) assertTrue(civic.isUnlocked(unlock));
+        assertEquals(Set.of(ProgressionUnlock.TOWN_HALL, ProgressionUnlock.NOTICE_BOARD,
+                ProgressionUnlock.CIVIC_PROJECTS, ProgressionUnlock.STORAGE, ProgressionUnlock.ANIMAL_FARMS),
+                civic.unlocks());
         assertEquals(first, civic.facility(FacilityType.TOWN_HALL).orElseThrow());
         assertEquals(1, data.history(id).events().stream()
                 .filter(event -> event.type() == HistoryEvent.Type.TOWN_HALL_ESTABLISHED).count());
@@ -59,6 +63,13 @@ class TownHallFoundationTest {
         assertFalse(replacementCommit.firstEstablishment());
         assertEquals(replacement, data.civicState(id).facility(FacilityType.TOWN_HALL).orElseThrow());
         assertEquals(1, data.history(id).events().stream()
+                .filter(event -> event.type() == HistoryEvent.Type.TOWN_HALL_ESTABLISHED).count());
+
+        var saved = data.save(new CompoundTag(), null);
+        var loaded = HometownSavedData.load(saved, null);
+        assertEquals(replacement, loaded.civicState(id).facility(FacilityType.TOWN_HALL).orElseThrow());
+        assertEquals(civic.unlocks(), loaded.civicState(id).unlocks());
+        assertEquals(1, loaded.history(id).events().stream()
                 .filter(event -> event.type() == HistoryEvent.Type.TOWN_HALL_ESTABLISHED).count());
     }
 
