@@ -1,5 +1,7 @@
 package dev.conner.hometown.interaction;
 
+import dev.conner.hometown.civic.AnimalFarmService;
+import dev.conner.hometown.civic.AnimalFarmSignGrammar;
 import dev.conner.hometown.civic.StorageService;
 import dev.conner.hometown.civic.StorageSignGrammar;
 import dev.conner.hometown.civic.TownHallService;
@@ -30,9 +32,11 @@ public final class TownHallInteractionHandler {
             TownHallService.register(player, event.getHand(), event.getPos());
         } else if (StorageSignGrammar.matches(text)) {
             StorageService.register(player, event.getHand(), event.getPos());
+        } else if (AnimalFarmSignGrammar.matches(text)) {
+            AnimalFarmService.register(player, event.getHand(), event.getPos());
         } else {
             player.sendSystemMessage(Component.literal(
-                    "Write [Hometown] on line 1 and a recognized civic facility (Town Hall or Storage) on line 2."));
+                    "Write [Hometown] on line 1 and a recognized civic facility (Town Hall, Storage, or Animal Farm) on line 2."));
         }
     }
 }
