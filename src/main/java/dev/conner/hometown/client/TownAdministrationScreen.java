@@ -6,7 +6,7 @@ import net.minecraft.client.gui.components.Button;
 import net.minecraft.client.gui.screens.Screen;
 import net.minecraft.network.chat.Component;
 
-/** R3 M1 physical Town Hall Administration UI. Navigation is client-local over one server snapshot. */
+/** Physical Town Hall Administration UI. Navigation is client-local over one server snapshot. */
 public final class TownAdministrationScreen extends Screen {
     private enum Page { OVERVIEW, PROGRESSION }
 
@@ -55,7 +55,6 @@ public final class TownAdministrationScreen extends Screen {
 
     @Override
     public void render(GuiGraphics graphics, int mouseX, int mouseY, float partialTick) {
-        // Keep the world visible but readable behind Administration without invoking Minecraft's blur pass.
         graphics.fill(0, 0, width, height, 0xA0000000);
 
         int panelWidth = Math.min(360, Math.max(260, width - 32));
@@ -80,7 +79,6 @@ public final class TownAdministrationScreen extends Screen {
         if (page == Page.OVERVIEW) renderOverview(graphics, x, y, panelWidth);
         else renderProgression(graphics, x, y, panelWidth);
 
-        // Screen#render now reaches our no-op renderBackground override, then draws only the widgets on top.
         super.render(graphics, mouseX, mouseY, partialTick);
     }
 
@@ -108,36 +106,60 @@ public final class TownAdministrationScreen extends Screen {
     private void renderProgression(GuiGraphics graphics, int x, int y, int panelWidth) {
         int left = x + 18;
         int contentY = y + 70;
+        int rowWidth = panelWidth - 36;
         graphics.drawString(font, Component.literal("Civic Progression"), left, contentY, 0xFFF4E8CC, false);
 
-        progressionRow(graphics, left, contentY + 18, panelWidth - 36,
+        progressionRow(graphics, left, contentY + 18, rowWidth,
                 "Town Hall", snapshot.townHallEstablished(), false);
-        progressionRow(graphics, left, contentY + 42, panelWidth - 36,
+        progressionRow(graphics, left, contentY + 42, rowWidth,
                 "Notice Board", snapshot.noticeBoardUnlocked(), true);
-        progressionRow(graphics, left, contentY + 66, panelWidth - 36,
+        progressionRow(graphics, left, contentY + 66, rowWidth,
                 "Civic Projects", snapshot.civicProjectsUnlocked(), true);
-        progressionRow(graphics, left, contentY + 90, panelWidth - 36,
-                "Storage", snapshot.storageUnlocked(), true);
-        progressionRow(graphics, left, contentY + 114, panelWidth - 36,
+        storageRow(graphics, left, contentY + 90, rowWidth);
+        progressionRow(graphics, left, contentY + 114, rowWidth,
                 "Animal Farms", snapshot.animalFarmsUnlocked(), true);
+    }
+
+    private void storageRow(GuiGraphics graphics, int x, int y, int width) {
+        String status;
+        int color;
+        if (!snapshot.storageUnlocked()) {
+            status = "Locked";
+            color = 0xFFB0B0B0;
+        } else if (!snapshot.storageEstablished()) {
+            status = "Unlocked — not established";
+            color = 0xFFE0B16A;
+        } else if (snapshot.storageActive()) {
+            status = "Established — Active";
+            color = 0xFF9ED184;
+        } else {
+            status = "Established — Unavailable";
+            color = 0xFFE0B16A;
+        }
+        statusRow(graphics, x, y, width, "Storage", status, color);
     }
 
     private void progressionRow(GuiGraphics graphics, int x, int y, int width,
                                 String name, boolean unlocked, boolean pendingImplementation) {
-        graphics.fill(x, y, x + width, y + 20, 0x552F2F2F);
-        graphics.drawString(font, Component.literal(name), x + 6, y + 6, 0xFFE6E0D2, false);
-        String statusText = unlocked
+        String status = unlocked
                 ? (pendingImplementation ? "Unlocked — not yet implemented" : "Established")
                 : "Locked";
+        statusRow(graphics, x, y, width, name, status, unlocked ? 0xFF9ED184 : 0xFFB0B0B0);
+    }
+
+    private void statusRow(GuiGraphics graphics, int x, int y, int width,
+                           String name, String statusText, int statusColor) {
+        graphics.fill(x, y, x + width, y + 20, 0x552F2F2F);
+        graphics.drawString(font, Component.literal(name), x + 6, y + 6, 0xFFE6E0D2, false);
         Component status = Component.literal(statusText);
         int statusWidth = font.width(status);
         int available = Math.max(60, width / 2);
         if (statusWidth > available) {
-            status = Component.literal(font.plainSubstrByWidth(statusText, Math.max(20, available - font.width("…"))) + "…");
+            status = Component.literal(font.plainSubstrByWidth(statusText,
+                    Math.max(20, available - font.width("…"))) + "…");
             statusWidth = font.width(status);
         }
-        graphics.drawString(font, status, x + width - statusWidth - 6, y + 6,
-                unlocked ? 0xFF9ED184 : 0xFFB0B0B0, false);
+        graphics.drawString(font, status, x + width - statusWidth - 6, y + 6, statusColor, false);
     }
 
     private static void drawSwatch(GuiGraphics graphics, int x, int y, int rgb) {
