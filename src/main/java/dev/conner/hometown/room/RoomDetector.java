@@ -57,6 +57,21 @@ public final class RoomDetector {
         return cell;
     }
 
+    /**
+     * Resolve an already-known traversable interior position through the same bounded flood used by Housing.
+     * Civic facilities use this path so they do not need to invent a second room detector or require a bed.
+     */
+    public RoomDetectionResult detectInterior(BlockPos position) {
+        BlockPos start = position.immutable();
+        Cell cell = read(start);
+        if (cell == null) return failure(start, RoomFailureReason.SCAN_BUDGET_EXCEEDED);
+        if (!cell.available()) return failure(start, RoomFailureReason.CHUNK_UNAVAILABLE);
+        if (cell.boundary()) return failure(start, RoomFailureReason.NO_VALID_INTERIOR_START);
+        RoomDetectionResult cached = enclosedCells.get(start);
+        if (cached != null) return cached;
+        return flood(start);
+    }
+
     public RoomDetectionResult detect(BlockPos bedPosition) {
         BlockPos bed = bedPosition.immutable();
         Cell origin = read(bed);
