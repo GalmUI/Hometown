@@ -36,7 +36,7 @@ class FacilityDetailFoundationTest {
         }
     }
 
-    @Test void storageDetailUsesRegisteredFacilityAndDailyMealPlaceholder() {
+    @Test void storageDetailWithoutTrustedCensusShowsWaitState() {
         HometownSavedData data = new HometownSavedData();
         UUID id = UUID.randomUUID();
         Settlement town = new Settlement(id, "Osea", Level.OVERWORLD, BlockPos.ZERO, 64,
@@ -55,7 +55,7 @@ class FacilityDetailFoundationTest {
         assertTrue(snapshot.active());
         assertTrue(hasRow(snapshot, "Recognized storage",
                 StorageRules.MIN_STORAGE_BLOCKS + " / " + StorageRules.MIN_STORAGE_BLOCKS));
-        assertTrue(hasRow(snapshot, "Daily Meal", "Not yet processed"));
+        assertTrue(hasRow(snapshot, "Daily Meal", "Waiting for census"));
         assertTrue(hasRow(snapshot, "Next meal", "Today at sunset"));
     }
 
