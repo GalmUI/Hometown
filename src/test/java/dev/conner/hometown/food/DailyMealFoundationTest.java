@@ -1,5 +1,6 @@
 package dev.conner.hometown.food;
 
+import java.util.Optional;
 import java.util.UUID;
 import net.minecraft.SharedConstants;
 import net.minecraft.nbt.CompoundTag;
@@ -33,7 +34,7 @@ class DailyMealFoundationTest {
                 DailyMealState.Outcome.SHORTAGE, 10, 21, 210, 188, 420, 1, 2);
         assertEquals(state, DailyMealState.fromTag(state.toTag()));
         assertTrue(state.warning());
-        assertEquals("Shortage 188 / 210", DailyMealService.summary(java.util.Optional.of(state)));
+        assertEquals("Shortage 188 / 210", DailyMealService.summary(Optional.of(state)));
     }
 
     @Test void savedDataAllowsAtMostOneRealMealPerDayAndPersistsLatestResult() {
@@ -69,6 +70,26 @@ class DailyMealFoundationTest {
         assertFalse(data.record(id, waiting));
     }
 
+    @Test void censusWaitFromFutureDayCanRecoverAfterTimeCommandRewind() {
+        UUID id = UUID.randomUUID();
+        DailyMealSavedData data = new DailyMealSavedData();
+        DailyMealState futureWaiting = new DailyMealState(42, 500000L, DailyMealState.Source.NONE,
+                DailyMealState.Outcome.POPULATION_UNAVAILABLE, 12, 20, 0, 0, -1, 0, 0);
+        DailyMealState currentFed = new DailyMealState(0, 501000L, DailyMealState.Source.STORAGE,
+                DailyMealState.Outcome.FED, 12, 20, 240, 240, 80, 0, 0);
+
+        assertTrue(data.record(id, futureWaiting));
+        assertTrue(DailyMealService.canAttempt(Optional.of(futureWaiting), 0));
+        assertTrue(data.record(id, currentFed));
+        assertEquals(currentFed, data.get(id).orElseThrow());
+    }
+
+    @Test void completedFutureMealStillBlocksClockRewindDoubleConsumption() {
+        DailyMealState futureFed = new DailyMealState(42, 500000L, DailyMealState.Source.STORAGE,
+                DailyMealState.Outcome.FED, 12, 20, 240, 240, 80, 0, 0);
+        assertFalse(DailyMealService.canAttempt(Optional.of(futureFed), 0));
+    }
+
     @Test void sourceAndCensusWaitStatesStayDistinguishableForUi() {
         DailyMealState hall = new DailyMealState(1, 36000L, DailyMealState.Source.TOWN_HALL,
                 DailyMealState.Outcome.FED, 3, 16, 48, 48, 64, 0, 0);
@@ -78,8 +99,10 @@ class DailyMealFoundationTest {
                 DailyMealState.Outcome.POPULATION_UNAVAILABLE, 0, 20, 0, 0, -1, 0, 0);
         assertFalse(hall.warning());
         assertTrue(storageUnavailable.warning());
-        assertEquals("Storage unavailable", DailyMealService.summary(java.util.Optional.of(storageUnavailable)));
-        assertEquals("Waiting for census", DailyMealService.summary(java.util.Optional.of(waiting)));
-        assertEquals("Waiting for census", DailyMealService.currentSummary(java.util.Optional.empty(), 2 * 24000L + 13000L, false));
+        assertEquals("Storage unavailable", DailyMealService.summary(Optional.of(storageUnavailable)));
+        assertEquals("Waiting for census", DailyMealService.summary(Optional.of(waiting)));
+        assertEquals("Waiting for census", DailyMealService.currentSummary(Optional.empty(), 2 * 24000L + 13000L, false));
+        assertEquals("Ready for sunset", DailyMealService.currentSummary(Optional.of(waiting), 11990L, true));
+        assertEquals("Due now", DailyMealService.currentSummary(Optional.of(waiting), 12000L, true));
     }
 }
