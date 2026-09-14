@@ -58,11 +58,7 @@ public final class DailyMealService {
             if (timeOfDay < MEAL_TICK) continue;
 
             Optional<DailyMealState> existing = meals.get(town.id());
-            if (existing.isPresent()) {
-                DailyMealState prior = existing.get();
-                if (prior.day() > day) continue;
-                if (prior.day() == day && prior.outcome() != DailyMealState.Outcome.POPULATION_UNAVAILABLE) continue;
-            }
+            if (!canAttempt(existing, day)) continue;
 
             DailyMealState state = processTown(level, town, towns, day);
             // Missing/stale census is a wait state, not a completed meal. Retry later the same day.
@@ -72,6 +68,23 @@ public final class DailyMealService {
                         town.name(), day, state.outcome(), state.consumedNutrition(), state.requiredNutrition(), state.source());
             }
         }
+    }
+
+    /**
+     * A completed real meal protects its day (and any earlier day after a command-driven clock rewind).
+     * A census-wait result consumed no food, so it is always safe to retry once census data becomes usable.
+     */
+    static boolean canAttempt(Optional<DailyMealState> existing, long day) {
+        if (existing.isEmpty()) return true;
+        DailyMealState prior = existing.get();
+        if (retryableCensusWait(prior)) return true;
+        return prior.day() < day;
+    }
+
+    private static boolean retryableCensusWait(DailyMealState state) {
+        return state != null
+                && state.outcome() == DailyMealState.Outcome.POPULATION_UNAVAILABLE
+                && state.consumedNutrition() == 0;
     }
 
     static DailyMealState processTown(ServerLevel level, Settlement town, HometownSavedData towns, long day) {
@@ -167,13 +180,14 @@ public final class DailyMealService {
         };
     }
 
-    /** Current operational label: a due meal without usable census data is explicitly waiting. */
+    /** Current operational label, including safe recovery from an old census-wait after /time set. */
     public static String currentSummary(Optional<DailyMealState> state, long dayTime, boolean censusUsable) {
         long day = Math.floorDiv(dayTime, 24000L);
         long time = Math.floorMod(dayTime, 24000L);
-        boolean due = time >= MEAL_TICK && state.map(meal -> meal.day() < day
-                || (meal.day() == day && meal.outcome() == DailyMealState.Outcome.POPULATION_UNAVAILABLE)).orElse(true);
-        if (due && !censusUsable) return "Waiting for census";
+        boolean pending = canAttempt(state, day);
+        if (time >= MEAL_TICK && pending) return censusUsable ? "Due now" : "Waiting for census";
+        if (time < MEAL_TICK && pending && censusUsable) return "Ready for sunset";
+        if (time < MEAL_TICK && pending) return "Waiting for census";
         return summary(state);
     }
 
@@ -182,15 +196,18 @@ public final class DailyMealService {
     }
 
     public static boolean currentWarning(Optional<DailyMealState> state, long dayTime, boolean censusUsable) {
-        return "Waiting for census".equals(currentSummary(state, dayTime, censusUsable)) || warning(state);
+        String current = currentSummary(state, dayTime, censusUsable);
+        if ("Waiting for census".equals(current)) return true;
+        if ("Ready for sunset".equals(current) || "Due now".equals(current)) return false;
+        return warning(state);
     }
 
     public static String nextMealLabel(long dayTime, Optional<DailyMealState> state) {
         long day = Math.floorDiv(dayTime, 24000L);
         long time = Math.floorMod(dayTime, 24000L);
-        if (time < MEAL_TICK && state.map(meal -> meal.day() < day).orElse(true)) return "Today at sunset";
-        if (time >= MEAL_TICK && state.map(meal -> meal.day() < day
-                || (meal.day() == day && meal.outcome() == DailyMealState.Outcome.POPULATION_UNAVAILABLE)).orElse(true)) return "Due now";
+        boolean pending = canAttempt(state, day);
+        if (time < MEAL_TICK && pending) return "Today at sunset";
+        if (time >= MEAL_TICK && pending) return "Due now";
         return "Next sunset";
     }
 
