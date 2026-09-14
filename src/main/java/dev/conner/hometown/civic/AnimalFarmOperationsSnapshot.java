@@ -11,10 +11,14 @@ public record AnimalFarmOperationsSnapshot(
         Map<LivestockSpecies, LivestockPolicy> policies,
         AnimalFarmCycleResult lastCycle) {
 
-    public record Counts(int adults, int young) {
+    public record Counts(int adults, int young, int namedAdults) {
         public Counts {
-            if (adults < 0 || young < 0) throw new IllegalArgumentException("Negative livestock count");
+            if (adults < 0 || young < 0 || namedAdults < 0 || namedAdults > adults) {
+                throw new IllegalArgumentException("Invalid livestock count");
+            }
         }
+        public Counts(int adults, int young) { this(adults, young, 0); }
+        public int unnamedAdults() { return adults - namedAdults; }
     }
 
     public AnimalFarmOperationsSnapshot {
@@ -23,7 +27,7 @@ public record AnimalFarmOperationsSnapshot(
         EnumMap<LivestockSpecies, LivestockPolicy> policyCopy = new EnumMap<>(LivestockSpecies.class);
         policyCopy.putAll(policies);
         for (LivestockSpecies species : LivestockSpecies.values()) {
-            countCopy.putIfAbsent(species, new Counts(0, 0));
+            countCopy.putIfAbsent(species, new Counts(0, 0, 0));
             policyCopy.putIfAbsent(species, LivestockPolicy.defaults());
         }
         counts = Map.copyOf(countCopy);
