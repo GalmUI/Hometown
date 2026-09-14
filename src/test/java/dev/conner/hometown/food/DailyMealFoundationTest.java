@@ -36,7 +36,7 @@ class DailyMealFoundationTest {
         assertEquals("Shortage 188 / 210", DailyMealService.summary(java.util.Optional.of(state)));
     }
 
-    @Test void savedDataAllowsAtMostOneMealPerDayAndPersistsLatestResult() {
+    @Test void savedDataAllowsAtMostOneRealMealPerDayAndPersistsLatestResult() {
         UUID id = UUID.randomUUID();
         DailyMealSavedData data = new DailyMealSavedData();
         DailyMealState day3 = new DailyMealState(3, 84000L, DailyMealState.Source.TOWN_HALL,
@@ -56,13 +56,30 @@ class DailyMealFoundationTest {
         assertEquals(day4, loaded.get(id).orElseThrow());
     }
 
-    @Test void sourceAndFailureStatesStayDistinguishableForUi() {
+    @Test void legacyPopulationUnavailableStateCanBeSafelyReplacedSameDay() {
+        UUID id = UUID.randomUUID();
+        DailyMealSavedData data = new DailyMealSavedData();
+        DailyMealState waiting = new DailyMealState(5, 132000L, DailyMealState.Source.NONE,
+                DailyMealState.Outcome.POPULATION_UNAVAILABLE, 0, 20, 0, 0, -1, 0, 0);
+        DailyMealState fed = new DailyMealState(5, 133000L, DailyMealState.Source.STORAGE,
+                DailyMealState.Outcome.FED, 4, 20, 80, 80, 120, 0, 0);
+        assertTrue(data.record(id, waiting));
+        assertTrue(data.record(id, fed));
+        assertEquals(fed, data.get(id).orElseThrow());
+        assertFalse(data.record(id, waiting));
+    }
+
+    @Test void sourceAndCensusWaitStatesStayDistinguishableForUi() {
         DailyMealState hall = new DailyMealState(1, 36000L, DailyMealState.Source.TOWN_HALL,
                 DailyMealState.Outcome.FED, 3, 16, 48, 48, 64, 0, 0);
         DailyMealState storageUnavailable = new DailyMealState(2, 60000L, DailyMealState.Source.STORAGE,
                 DailyMealState.Outcome.SOURCE_UNAVAILABLE, 3, 20, 60, 0, -1, 0, 1);
+        DailyMealState waiting = new DailyMealState(2, 60000L, DailyMealState.Source.NONE,
+                DailyMealState.Outcome.POPULATION_UNAVAILABLE, 0, 20, 0, 0, -1, 0, 0);
         assertFalse(hall.warning());
         assertTrue(storageUnavailable.warning());
         assertEquals("Storage unavailable", DailyMealService.summary(java.util.Optional.of(storageUnavailable)));
+        assertEquals("Waiting for census", DailyMealService.summary(java.util.Optional.of(waiting)));
+        assertEquals("Waiting for census", DailyMealService.currentSummary(java.util.Optional.empty(), 2 * 24000L + 13000L, false));
     }
 }
