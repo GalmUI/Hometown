@@ -11,7 +11,7 @@ import net.minecraft.server.level.ServerLevel;
 import net.minecraft.world.entity.npc.Villager;
 import net.minecraft.world.entity.npc.VillagerProfession;
 
-/** A synchronous, read-only scan, invoked solely by explicit Ledger requests. */
+/** Loaded-only resident observation. Complete results feed the shared Town Census cache. */
 public final class SettlementScanner {
     private SettlementScanner() {}
 
@@ -20,8 +20,19 @@ public final class SettlementScanner {
         return observe(level, settlement, verticalRange).stats();
     }
 
-    /** One resident pass feeding existing settlement stats and copied Commerce facts. */
+    /**
+     * Normal consumer path. The current loaded-only pass is reconciled through the trusted census so a
+     * partial observation never lowers a previously complete population.
+     */
     public static SettlementObservation observe(ServerLevel level, Settlement settlement, int verticalRange) {
+        return TownCensusService.reconcile(level, settlement, observeCurrent(level, settlement, verticalRange));
+    }
+
+    /**
+     * Raw loaded-only resident pass used by the periodic Town Census owner. This never force-loads chunks
+     * and deliberately bypasses cached census data so a new complete census can actually be discovered.
+     */
+    public static SettlementObservation observeCurrent(ServerLevel level, Settlement settlement, int verticalRange) {
         if (level == null) return new SettlementObservation(SettlementStats.unavailable(), java.util.List.of(), 0, 0);
         var bell = settlement.bellPosition();
         int radius = settlement.radius();
