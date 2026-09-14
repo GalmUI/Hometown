@@ -8,6 +8,8 @@ import dev.conner.hometown.network.FacilityDetailSnapshotPayload.Line;
 import dev.conner.hometown.network.FacilityDetailSnapshotPayload.Tone;
 import dev.conner.hometown.settlement.HometownSavedData;
 import dev.conner.hometown.settlement.Settlement;
+import dev.conner.hometown.settlement.TownCensusService;
+import dev.conner.hometown.settlement.TownCensusState;
 import java.util.ArrayList;
 import java.util.Objects;
 import java.util.Optional;
@@ -57,20 +59,30 @@ public final class FacilityDetailService {
         if (marker == null) return Optional.empty();
 
         var meal = DailyMealSavedData.get(server).get(town.id());
-        return Optional.of(snapshotFor(level, town, civic, marker, meal, level.getDayTime()));
+        var census = TownCensusService.trusted(server, town.id());
+        boolean censusUsable = TownCensusService.forOperations(server, town.id(), level.getGameTime()).isPresent();
+        return Optional.of(snapshotFor(level, town, civic, marker, meal, level.getDayTime(),
+                census, level.getGameTime(), censusUsable));
     }
 
     static FacilityDetailSnapshotPayload snapshotFor(
             ServerLevel level, Settlement town, TownCivicState civic, FacilityMarker marker) {
-        return snapshotFor(level, town, civic, marker, Optional.empty(), 0L);
+        return snapshotFor(level, town, civic, marker, Optional.empty(), 0L, Optional.empty(), 0L, false);
     }
 
     static FacilityDetailSnapshotPayload snapshotFor(
             ServerLevel level, Settlement town, TownCivicState civic, FacilityMarker marker,
             Optional<DailyMealState> meal, long dayTime) {
+        return snapshotFor(level, town, civic, marker, meal, dayTime, Optional.empty(), 0L, false);
+    }
+
+    static FacilityDetailSnapshotPayload snapshotFor(
+            ServerLevel level, Settlement town, TownCivicState civic, FacilityMarker marker,
+            Optional<DailyMealState> meal, long dayTime, Optional<TownCensusState> census,
+            long gameTime, boolean censusUsable) {
         return switch (marker.type()) {
             case STORAGE -> storageSnapshotFor(town, civic, marker,
-                    StorageService.revalidate(level, town, marker), meal, dayTime);
+                    StorageService.revalidate(level, town, marker), meal, dayTime, census, gameTime, censusUsable);
             case TOWN_HALL -> {
                 var result = TownHallService.revalidate(level, town, marker);
                 yield genericSnapshot(town, civic, marker, result.qualified(),
@@ -85,12 +97,21 @@ public final class FacilityDetailService {
 
     static FacilityDetailSnapshotPayload storageSnapshotFor(
             Settlement town, TownCivicState civic, FacilityMarker marker, StorageQualifier.Result result) {
-        return storageSnapshotFor(town, civic, marker, result, Optional.empty(), 0L);
+        return storageSnapshotFor(town, civic, marker, result, Optional.empty(), 0L,
+                Optional.empty(), 0L, false);
     }
 
     static FacilityDetailSnapshotPayload storageSnapshotFor(
             Settlement town, TownCivicState civic, FacilityMarker marker, StorageQualifier.Result result,
             Optional<DailyMealState> meal, long dayTime) {
+        return storageSnapshotFor(town, civic, marker, result, meal, dayTime,
+                Optional.empty(), 0L, false);
+    }
+
+    static FacilityDetailSnapshotPayload storageSnapshotFor(
+            Settlement town, TownCivicState civic, FacilityMarker marker, StorageQualifier.Result result,
+            Optional<DailyMealState> meal, long dayTime, Optional<TownCensusState> census,
+            long gameTime, boolean censusUsable) {
         boolean active = result.qualified();
         ArrayList<Line> lines = new ArrayList<>();
         addStatus(lines, marker, active);
@@ -107,8 +128,12 @@ public final class FacilityDetailService {
             lines.add(Line.note(StorageService.qualificationMessage(result), Tone.WARNING));
         }
         lines.add(Line.section("Operations"));
-        lines.add(Line.row("Daily Meal", DailyMealService.summary(meal),
-                DailyMealService.warning(meal) ? Tone.WARNING : meal.isPresent() ? Tone.GOOD : Tone.MUTED));
+        lines.add(Line.row("Census population", census.map(state -> Integer.toString(state.population())).orElse("Unknown"),
+                censusUsable ? Tone.GOOD : Tone.WARNING));
+        lines.add(Line.row("Census", censusShortLabel(census, gameTime),
+                TownCensusService.warning(census, gameTime) ? Tone.WARNING : Tone.GOOD));
+        lines.add(Line.row("Daily Meal", DailyMealService.currentSummary(meal, dayTime, censusUsable),
+                DailyMealService.currentWarning(meal, dayTime, censusUsable) ? Tone.WARNING : meal.isPresent() ? Tone.GOOD : Tone.MUTED));
         lines.add(Line.row("Next meal", DailyMealService.nextMealLabel(dayTime, meal), Tone.MUTED));
         meal.ifPresent(last -> {
             if (last.requiredNutrition() > 0) {
@@ -179,6 +204,18 @@ public final class FacilityDetailService {
         lines.add(Line.section("Role"));
         lines.add(Line.note("Livestock production and animal-based town supplies.", Tone.NORMAL));
         return payload(town, civic, marker.type(), active, lines);
+    }
+
+    private static String censusShortLabel(Optional<TownCensusState> census, long gameTime) {
+        if (census.isEmpty()) return "Waiting";
+        TownCensusState state = census.get();
+        long minutes = TownCensusService.ageTicks(state, gameTime) / 1200L;
+        return switch (TownCensusService.freshness(state, gameTime)) {
+            case MISSING -> "Waiting";
+            case FRESH -> "Current";
+            case STALE -> Math.max(1L, minutes) + "m old";
+            case EXPIRED -> "Stale — " + Math.max(1L, minutes) + "m";
+        };
     }
 
     private static String sourceLabel(DailyMealState.Source source) {
