@@ -41,13 +41,26 @@ public final class AnimalFarmOperationsSavedData extends SavedData {
         return true;
     }
 
-    /** At most one completed livestock work cycle is recorded for a given-or-older Minecraft day. */
+    /**
+     * A terminal cycle is immutable for its day. Retryable failure states performed no mutation and
+     * may therefore be replaced later the same day (or after a test/admin clock rewind).
+     */
     public boolean recordCycle(UUID settlementId, AnimalFarmCycleResult result) {
         AnimalFarmOperationsState current = state(settlementId);
-        if (current.lastCycle() != null && current.lastCycle().day() >= result.day()) return false;
+        AnimalFarmCycleResult existing = current.lastCycle();
+        if (existing != null) {
+            if (existing.terminalForDay() && existing.day() >= result.day()) return false;
+            if (existing.retryable() && result.retryable() && sameAttemptState(existing, result)) return false;
+        }
         states.put(settlementId, current.withLastCycle(result));
         setDirty();
         return true;
+    }
+
+    private static boolean sameAttemptState(AnimalFarmCycleResult a, AnimalFarmCycleResult b) {
+        return a.day() == b.day() && a.outcome() == b.outcome()
+                && a.cowAdults() == b.cowAdults() && a.cowYoung() == b.cowYoung()
+                && a.pigAdults() == b.pigAdults() && a.pigYoung() == b.pigYoung();
     }
 
     public static AnimalFarmOperationsSavedData load(CompoundTag tag, HolderLookup.Provider registries) {
