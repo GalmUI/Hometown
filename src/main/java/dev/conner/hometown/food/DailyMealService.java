@@ -6,19 +6,16 @@ import dev.conner.hometown.civic.FacilityType;
 import dev.conner.hometown.civic.StorageService;
 import dev.conner.hometown.civic.TownCivicState;
 import dev.conner.hometown.civic.TownHallService;
-import dev.conner.hometown.config.HometownServerConfig;
 import dev.conner.hometown.room.RoomGeometry;
 import dev.conner.hometown.settlement.HometownSavedData;
 import dev.conner.hometown.settlement.Settlement;
-import dev.conner.hometown.settlement.SettlementScanner;
-import dev.conner.hometown.settlement.SettlementStats;
+import dev.conner.hometown.settlement.TownCensusService;
+import dev.conner.hometown.settlement.TownCensusState;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.IdentityHashMap;
-import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
 import java.util.List;
-import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 import java.util.TreeSet;
@@ -59,8 +56,17 @@ public final class DailyMealService {
             long day = Math.floorDiv(dayTime, 24000L);
             long timeOfDay = Math.floorMod(dayTime, 24000L);
             if (timeOfDay < MEAL_TICK) continue;
-            if (meals.get(town.id()).map(existing -> existing.day() >= day).orElse(false)) continue;
+
+            Optional<DailyMealState> existing = meals.get(town.id());
+            if (existing.isPresent()) {
+                DailyMealState prior = existing.get();
+                if (prior.day() > day) continue;
+                if (prior.day() == day && prior.outcome() != DailyMealState.Outcome.POPULATION_UNAVAILABLE) continue;
+            }
+
             DailyMealState state = processTown(level, town, towns, day);
+            // Missing/stale census is a wait state, not a completed meal. Retry later the same day.
+            if (state.outcome() == DailyMealState.Outcome.POPULATION_UNAVAILABLE) continue;
             if (meals.record(town.id(), state)) {
                 Hometown.LOGGER.info("Daily Meal for '{}' day {}: {} ({} / {} nutrition from {})",
                         town.name(), day, state.outcome(), state.consumedNutrition(), state.requiredNutrition(), state.source());
@@ -70,12 +76,16 @@ public final class DailyMealService {
 
     static DailyMealState processTown(ServerLevel level, Settlement town, HometownSavedData towns, long day) {
         int perResident = nutritionPerResident(town.id(), day);
-        var stats = SettlementScanner.scan(level, town, HometownServerConfig.VERTICAL_SCAN_RADIUS.get());
-        if (stats.availability() != SettlementStats.Availability.COMPLETE) {
+        long now = level.getGameTime();
+        Optional<TownCensusState> trusted = TownCensusService.trusted(level.getServer(), town.id());
+        Optional<TownCensusState> census = TownCensusService.forOperations(level.getServer(), town.id(), now);
+        if (census.isEmpty()) {
+            int lastKnownPopulation = trusted.map(TownCensusState::population).orElse(0);
             return failure(level, day, DailyMealState.Source.NONE, DailyMealState.Outcome.POPULATION_UNAVAILABLE,
-                    stats.population(), perResident, 0L, 0, 0);
+                    lastKnownPopulation, perResident, 0L, 0, 0);
         }
-        int population = stats.population();
+
+        int population = census.get().population();
         long required = Math.multiplyExact((long) population, perResident);
         if (population == 0) {
             return new DailyMealState(day, level.getGameTime(), DailyMealState.Source.NONE,
@@ -150,22 +160,37 @@ public final class DailyMealService {
             case FED -> "Fed " + meal.consumedNutrition() + " / " + meal.requiredNutrition();
             case SHORTAGE -> "Shortage " + meal.consumedNutrition() + " / " + meal.requiredNutrition();
             case NO_RESIDENTS -> "No residents to feed";
-            case POPULATION_UNAVAILABLE -> "Population unavailable";
+            case POPULATION_UNAVAILABLE -> "Waiting for census";
             case NO_TOWN_HALL -> "Awaiting Town Hall";
             case SOURCE_UNAVAILABLE -> meal.source() == DailyMealState.Source.STORAGE
                     ? "Storage unavailable" : "Meal source unavailable";
         };
     }
 
+    /** Current operational label: a due meal without usable census data is explicitly waiting. */
+    public static String currentSummary(Optional<DailyMealState> state, long dayTime, boolean censusUsable) {
+        long day = Math.floorDiv(dayTime, 24000L);
+        long time = Math.floorMod(dayTime, 24000L);
+        boolean due = time >= MEAL_TICK && state.map(meal -> meal.day() < day
+                || (meal.day() == day && meal.outcome() == DailyMealState.Outcome.POPULATION_UNAVAILABLE)).orElse(true);
+        if (due && !censusUsable) return "Waiting for census";
+        return summary(state);
+    }
+
     public static boolean warning(Optional<DailyMealState> state) {
         return state.map(DailyMealState::warning).orElse(false);
+    }
+
+    public static boolean currentWarning(Optional<DailyMealState> state, long dayTime, boolean censusUsable) {
+        return "Waiting for census".equals(currentSummary(state, dayTime, censusUsable)) || warning(state);
     }
 
     public static String nextMealLabel(long dayTime, Optional<DailyMealState> state) {
         long day = Math.floorDiv(dayTime, 24000L);
         long time = Math.floorMod(dayTime, 24000L);
         if (time < MEAL_TICK && state.map(meal -> meal.day() < day).orElse(true)) return "Today at sunset";
-        if (time >= MEAL_TICK && state.map(meal -> meal.day() < day).orElse(true)) return "Due now";
+        if (time >= MEAL_TICK && state.map(meal -> meal.day() < day
+                || (meal.day() == day && meal.outcome() == DailyMealState.Outcome.POPULATION_UNAVAILABLE)).orElse(true)) return "Due now";
         return "Next sunset";
     }
 
@@ -231,8 +256,6 @@ public final class DailyMealService {
             consumed = saturatingAdd(consumed, (long)needed * candidate.nutritionPerItem());
         }
 
-        // Validate every selected slot before mutating any inventory. The server thread makes a successful
-        // validation/apply pass effectively atomic for ordinary container changes.
         for (Removal removal : removals) {
             ItemStack current = removal.candidate().inventory().getItem(removal.candidate().slot());
             var food = current == null ? null : current.get(DataComponents.FOOD);
