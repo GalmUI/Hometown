@@ -27,19 +27,17 @@ public final class DailyMealSavedData extends SavedData {
     }
 
     /**
-     * Commits at most one real meal result for a Minecraft day. 0.11.1 permits one safe same-day
-     * replacement only when 0.11.0 previously recorded POPULATION_UNAVAILABLE, because that state
-     * consumed no inventory and is now treated as a retryable census wait rather than a completed meal.
+     * Commits at most one real meal result for a Minecraft day. A POPULATION_UNAVAILABLE result is
+     * special because it consumed nothing: it may be replaced by a real result even if /time set moved
+     * the daylight clock backward and the old wait-state therefore has a numerically newer day value.
      */
     public boolean record(UUID settlementId, DailyMealState state) {
         DailyMealState existing = states.get(settlementId);
         if (existing != null) {
-            if (existing.day() > state.day()) return false;
-            if (existing.day() == state.day()) {
-                boolean retryable = existing.outcome() == DailyMealState.Outcome.POPULATION_UNAVAILABLE
-                        && state.outcome() != DailyMealState.Outcome.POPULATION_UNAVAILABLE;
-                if (!retryable) return false;
-            }
+            boolean retryableCensusWait = existing.outcome() == DailyMealState.Outcome.POPULATION_UNAVAILABLE
+                    && existing.consumedNutrition() == 0
+                    && state.outcome() != DailyMealState.Outcome.POPULATION_UNAVAILABLE;
+            if (!retryableCensusWait && existing.day() >= state.day()) return false;
         }
         states.put(settlementId, state);
         setDirty();
