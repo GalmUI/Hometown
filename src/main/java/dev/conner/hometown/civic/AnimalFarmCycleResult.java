@@ -40,6 +40,16 @@ public record AnimalFarmCycleResult(
         }
     }
 
+    /** Terminal means the farm completed its intended work for this Minecraft day. */
+    public boolean terminalForDay() {
+        return outcome == Outcome.PROCESSED || outcome == Outcome.NO_SURPLUS;
+    }
+
+    /** Retryable outcomes are guaranteed to have performed no culling or output mutation. */
+    public boolean retryable() {
+        return !terminalForDay();
+    }
+
     CompoundTag toTag() {
         CompoundTag tag = new CompoundTag();
         tag.putLong("Day", day);
