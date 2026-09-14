@@ -35,6 +35,7 @@ public final class Hometown {
         NeoForge.EVENT_BUS.addListener(TownHallInteractionHandler::onRightClick);
         NeoForge.EVENT_BUS.addListener(TownAdministrationInteractionHandler::onRightClick);
         NeoForge.EVENT_BUS.addListener(dev.conner.hometown.settlement.TownCensusService::onServerTick);
+        NeoForge.EVENT_BUS.addListener(dev.conner.hometown.civic.AnimalFarmOperationsService::onServerTick);
         NeoForge.EVENT_BUS.addListener(dev.conner.hometown.food.DailyMealService::onServerTick);
         NeoForge.EVENT_BUS.addListener(HometownDebugCommands::register);
         NeoForge.EVENT_BUS.addListener(M5DebugCommands::register);
@@ -47,6 +48,7 @@ public final class Hometown {
             SettlementManager.release(event.getServer());
             dev.conner.hometown.settlement.TownLedgerService.release(event.getServer());
             dev.conner.hometown.settlement.TownCensusService.release(event.getServer());
+            dev.conner.hometown.civic.AnimalFarmOperationsService.release(event.getServer());
         });
         NeoForge.EVENT_BUS.addListener((PlayerEvent.PlayerChangedDimensionEvent event) -> {
             if (event.getEntity() instanceof net.minecraft.server.level.ServerPlayer player)
