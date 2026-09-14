@@ -1,7 +1,10 @@
 package dev.conner.hometown.network;
 
+import dev.conner.hometown.civic.AnimalFarmOperationsService;
+import dev.conner.hometown.civic.LivestockSpecies;
 import dev.conner.hometown.settlement.SettlementManager;
 import dev.conner.hometown.settlement.TownColorService;
+import java.util.UUID;
 import java.util.function.Consumer;
 import net.minecraft.core.BlockPos;
 import net.minecraft.server.level.ServerPlayer;
@@ -35,8 +38,12 @@ public final class HometownNetworking {
     public static void requestTownColors(net.minecraft.world.InteractionHand hand, BlockPos bellPosition) {
         PacketDistributor.sendToServer(new RequestTownColorsPayload(hand, bellPosition));
     }
+    public static void updateAnimalFarmPolicy(UUID settlementId, LivestockSpecies species,
+                                              UpdateAnimalFarmPolicyPayload.Setting setting, int delta) {
+        PacketDistributor.sendToServer(new UpdateAnimalFarmPolicyPayload(settlementId, species, setting, delta));
+    }
     public static void register(RegisterPayloadHandlersEvent event) {
-        var registrar = event.registrar("15");
+        var registrar = event.registrar("16");
         registrar.playToServer(RequestTownLedgerPayload.TYPE, RequestTownLedgerPayload.STREAM_CODEC, (payload, context) -> {
             if (context.player() instanceof ServerPlayer player) {
                 var response=dev.conner.hometown.settlement.TownLedgerService.respond(player,payload);
@@ -87,6 +94,12 @@ public final class HometownNetworking {
         });
         registrar.playToServer(SubmitTownColorsPayload.TYPE, SubmitTownColorsPayload.STREAM_CODEC, (payload, context) -> {
             if (context.player() instanceof ServerPlayer player) TownColorService.submit(player, payload);
+        });
+        registrar.playToServer(UpdateAnimalFarmPolicyPayload.TYPE, UpdateAnimalFarmPolicyPayload.STREAM_CODEC, (payload, context) -> {
+            if (context.player() instanceof ServerPlayer player) {
+                AnimalFarmOperationsService.updatePolicy(player, payload).ifPresent(snapshot ->
+                        PacketDistributor.sendToPlayer(player, snapshot));
+            }
         });
         // NeoForge defaults to the main thread; validation and creation are one synchronous operation.
         registrar.playToServer(SubmitTownNamePayload.TYPE, SubmitTownNamePayload.STREAM_CODEC, (payload, context) -> {
