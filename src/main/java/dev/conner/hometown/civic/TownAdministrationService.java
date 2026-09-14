@@ -8,6 +8,7 @@ import dev.conner.hometown.item.HometownItems;
 import dev.conner.hometown.network.TownAdministrationSnapshotPayload;
 import dev.conner.hometown.settlement.HometownSavedData;
 import dev.conner.hometown.settlement.Settlement;
+import dev.conner.hometown.settlement.TownCensusService;
 import java.util.Objects;
 import java.util.Optional;
 import net.minecraft.core.BlockPos;
@@ -84,8 +85,10 @@ public final class TownAdministrationService {
                 .map(farm -> AnimalFarmService.revalidate(level, town, farm).qualified())
                 .orElse(false);
         var meal = DailyMealSavedData.get(server).get(town.id());
+        boolean censusUsable = TownCensusService.forOperations(server, town.id(), level.getGameTime()).isPresent();
         return Optional.of(snapshotFor(town, civic, storageActive, animalFarmActive,
-                DailyMealService.summary(meal), DailyMealService.warning(meal)));
+                DailyMealService.currentSummary(meal, level.getDayTime(), censusUsable),
+                DailyMealService.currentWarning(meal, level.getDayTime(), censusUsable)));
     }
 
     static TownAdministrationSnapshotPayload snapshotFor(Settlement town, TownCivicState civic) {
