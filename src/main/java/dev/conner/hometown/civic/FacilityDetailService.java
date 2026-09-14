@@ -4,6 +4,7 @@ import dev.conner.hometown.food.DailyMealSavedData;
 import dev.conner.hometown.food.DailyMealService;
 import dev.conner.hometown.food.DailyMealState;
 import dev.conner.hometown.network.FacilityDetailSnapshotPayload;
+import dev.conner.hometown.network.FacilityDetailSnapshotPayload.AnimalFarmControls;
 import dev.conner.hometown.network.FacilityDetailSnapshotPayload.Line;
 import dev.conner.hometown.network.FacilityDetailSnapshotPayload.Tone;
 import dev.conner.hometown.settlement.HometownSavedData;
@@ -90,8 +91,11 @@ public final class FacilityDetailService {
                         "Civic administration and town-wide progression.",
                         "Use the linked Town Ledger on the Hall lectern for Town Administration.");
             }
-            case ANIMAL_FARM -> animalFarmSnapshotFor(
-                    town, civic, marker, AnimalFarmService.revalidate(level, town, marker));
+            case ANIMAL_FARM -> {
+                var result = AnimalFarmService.revalidate(level, town, marker);
+                var operations = AnimalFarmOperationsService.snapshot(level, town, result);
+                yield animalFarmSnapshotFor(town, civic, marker, result, operations, dayTime);
+            }
         };
     }
 
@@ -152,11 +156,66 @@ public final class FacilityDetailService {
         });
         lines.add(Line.section("Role"));
         lines.add(Line.note("Primary town food reserve. Once established, Daily Meal draws only from this registered facility.", Tone.NORMAL));
-        return payload(town, civic, marker.type(), active, lines);
+        return payload(town, civic, marker.type(), active, lines, null);
+    }
+
+    /** Compatibility owner for earlier tests/callers; live server paths supply an operations snapshot. */
+    static FacilityDetailSnapshotPayload animalFarmSnapshotFor(
+            Settlement town, TownCivicState civic, FacilityMarker marker, AnimalFarmQualifier.Result result) {
+        boolean active = result.qualified();
+        ArrayList<Line> lines = animalFarmStructuralLines(marker, result);
+        lines.add(Line.section("Livestock"));
+        lines.add(Line.row("Production", "Not yet active", Tone.MUTED));
+        lines.add(Line.row("Animals", "Not yet tracked", Tone.MUTED));
+        lines.add(Line.section("Role"));
+        lines.add(Line.note("Livestock production and animal-based town supplies.", Tone.NORMAL));
+        return payload(town, civic, marker.type(), active, lines, null);
     }
 
     static FacilityDetailSnapshotPayload animalFarmSnapshotFor(
-            Settlement town, TownCivicState civic, FacilityMarker marker, AnimalFarmQualifier.Result result) {
+            Settlement town, TownCivicState civic, FacilityMarker marker, AnimalFarmQualifier.Result result,
+            AnimalFarmOperationsSnapshot operations, long dayTime) {
+        boolean active = result.qualified();
+        ArrayList<Line> lines = animalFarmStructuralLines(marker, result);
+
+        lines.add(Line.section("Livestock Management"));
+        if (!operations.livestockAvailable()) {
+            lines.add(Line.row("Animals", active ? "Paddock data unavailable" : "Facility unavailable", Tone.WARNING));
+        } else {
+            addLivestock(lines, "Cow", operations.counts(LivestockSpecies.COW), operations.policy(LivestockSpecies.COW));
+            addLivestock(lines, "Pig", operations.counts(LivestockSpecies.PIG), operations.policy(LivestockSpecies.PIG));
+            if (operations.counts(LivestockSpecies.COW).namedAdults() > 0
+                    || operations.counts(LivestockSpecies.PIG).namedAdults() > 0) {
+                lines.add(Line.note("Named adult livestock are protected and are never selected for culling.", Tone.MUTED));
+            }
+        }
+
+        lines.add(Line.section("Production"));
+        Optional<AnimalFarmCycleResult> last = operations.lastCycleOptional();
+        lines.add(Line.row("Last cycle", last.map(FacilityDetailService::cycleLabel).orElse("Not yet processed"),
+                last.map(FacilityDetailService::cycleTone).orElse(Tone.MUTED)));
+        lines.add(Line.row("Next cycle", AnimalFarmOperationsService.nextCycleLabel(dayTime, last), Tone.MUTED));
+        last.ifPresent(cycle -> {
+            if (cycle.outcome() == AnimalFarmCycleResult.Outcome.PROCESSED) {
+                lines.add(Line.row("Culled", cycle.cowsCulled() + " cow(s), " + cycle.pigsCulled() + " pig(s)", Tone.GOOD));
+                lines.add(Line.row("Output", cycle.beefProduced() + " beef, " + cycle.leatherProduced()
+                        + " leather, " + cycle.porkchopsProduced() + " porkchop(s)", Tone.GOOD));
+            }
+        });
+        lines.add(Line.note("Work cycle runs late in the day. Farm output is placed in this building's recognized storage.", Tone.MUTED));
+
+        lines.add(Line.section("Role"));
+        lines.add(Line.note("Breed livestock above your configured herd limits; surplus adults become farm supplies.", Tone.NORMAL));
+
+        LivestockPolicy cows = operations.policy(LivestockSpecies.COW);
+        LivestockPolicy pigs = operations.policy(LivestockSpecies.PIG);
+        AnimalFarmControls controls = new AnimalFarmControls(
+                cows.breedingPairs(), cows.cullAbove(), pigs.breedingPairs(), pigs.cullAbove());
+        return payload(town, civic, marker.type(), active, lines, controls);
+    }
+
+    private static ArrayList<Line> animalFarmStructuralLines(
+            FacilityMarker marker, AnimalFarmQualifier.Result result) {
         boolean active = result.qualified();
         boolean buildingQualified = result.storageBlocks() >= AnimalFarmRules.MIN_STORAGE_BLOCKS
                 && result.looms() >= AnimalFarmRules.MIN_LOOMS
@@ -192,18 +251,43 @@ public final class FacilityDetailService {
             lines.add(Line.row("Connected fences/gates", "Not evaluated", Tone.MUTED));
             lines.add(Line.row("Enclosure", "Not evaluated", Tone.MUTED));
         }
-
         if (!active) {
             lines.add(Line.section("Diagnostics"));
             lines.add(Line.note(AnimalFarmService.qualificationMessage(result), Tone.WARNING));
         }
+        return lines;
+    }
 
-        lines.add(Line.section("Livestock"));
-        lines.add(Line.row("Production", "Not yet active", Tone.MUTED));
-        lines.add(Line.row("Animals", "Not yet tracked", Tone.MUTED));
-        lines.add(Line.section("Role"));
-        lines.add(Line.note("Livestock production and animal-based town supplies.", Tone.NORMAL));
-        return payload(town, civic, marker.type(), active, lines);
+    private static void addLivestock(ArrayList<Line> lines, String label,
+                                     AnimalFarmOperationsSnapshot.Counts counts, LivestockPolicy policy) {
+        int rawSurplus = Math.max(0, counts.adults() - policy.cullAbove());
+        int cullable = Math.min(rawSurplus, counts.unnamedAdults());
+        Tone populationTone = counts.adults() >= policy.protectedAdults() ? Tone.GOOD : Tone.WARNING;
+        lines.add(Line.row(label + "s", counts.adults() + " adults, " + counts.young() + " young", populationTone));
+        lines.add(Line.row(label + " breeding pairs", policy.breedingPairs() + " (" + policy.protectedAdults() + " protected)", Tone.NORMAL));
+        lines.add(Line.row(label + " cull above", policy.cullAbove() + " adults", Tone.NORMAL));
+        lines.add(Line.row(label + " cullable surplus", Integer.toString(cullable), cullable > 0 ? Tone.WARNING : Tone.MUTED));
+        if (counts.namedAdults() > 0) {
+            lines.add(Line.row(label + " named protected", Integer.toString(counts.namedAdults()), Tone.MUTED));
+        }
+    }
+
+    private static String cycleLabel(AnimalFarmCycleResult cycle) {
+        return switch (cycle.outcome()) {
+            case PROCESSED -> "Processed " + (cycle.cowsCulled() + cycle.pigsCulled()) + " surplus animal(s)";
+            case NO_SURPLUS -> "No cullable surplus";
+            case FACILITY_UNAVAILABLE -> "Farm unavailable — retrying";
+            case LIVESTOCK_UNAVAILABLE -> "Paddock unavailable — retrying";
+            case OUTPUT_STORAGE_FULL -> "Output storage full — retrying";
+        };
+    }
+
+    private static Tone cycleTone(AnimalFarmCycleResult cycle) {
+        return switch (cycle.outcome()) {
+            case PROCESSED -> Tone.GOOD;
+            case NO_SURPLUS -> Tone.MUTED;
+            case FACILITY_UNAVAILABLE, LIVESTOCK_UNAVAILABLE, OUTPUT_STORAGE_FULL -> Tone.WARNING;
+        };
     }
 
     private static String censusShortLabel(Optional<TownCensusState> census, long gameTime) {
@@ -249,7 +333,7 @@ public final class FacilityDetailService {
         lines.add(Line.section("Role"));
         lines.add(Line.note(role, Tone.NORMAL));
         lines.add(Line.note(note, Tone.MUTED));
-        return payload(town, civic, marker.type(), active, lines);
+        return payload(town, civic, marker.type(), active, lines, null);
     }
 
     private static void addStatus(ArrayList<Line> lines, FacilityMarker marker, boolean active) {
@@ -260,9 +344,11 @@ public final class FacilityDetailService {
     }
 
     private static FacilityDetailSnapshotPayload payload(
-            Settlement town, TownCivicState civic, FacilityType type, boolean active, java.util.List<Line> lines) {
+            Settlement town, TownCivicState civic, FacilityType type, boolean active,
+            java.util.List<Line> lines, AnimalFarmControls controls) {
         return new FacilityDetailSnapshotPayload(town.id(), town.name(),
-                civic.primaryColor().orElseThrow(), civic.secondaryColor().orElseThrow(), type, active, lines);
+                civic.primaryColor().orElseThrow(), civic.secondaryColor().orElseThrow(),
+                type, active, lines, controls);
     }
 
     private static String position(BlockPos pos) {
