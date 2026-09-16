@@ -10,21 +10,22 @@ This directory separates current specification authority, implementation trackin
 
 Revision 1 / older material must not override Revision 2 or Revision 3 requirements.
 
-Owner-approved milestone refinements are recorded in scoped implementation contracts rather than rewriting the source DOCX. For the active milestone:
+Owner-approved milestone refinements are recorded in scoped implementation contracts rather than rewriting the source DOCX. Current Revision 3 authority includes:
 
-- `implementation/R3_M1_TOWN_HALL_CONTRACT.md` — R3 M1 Town Hall foundation, town colors, sign designation, Administration and persistence contract.
-- `evidence/r3-m1-2026-09-12/ACCEPTANCE_MATRIX.md` — required automated/live/server acceptance matrix for M1.
+- `implementation/R3_M1_TOWN_HALL_CONTRACT.md` plus the subsequent M1 implementation contracts — completed R3 M1 foundation and town-operations work through `0.12.0`.
+- `implementation/R3_0_13_0_NOTICE_BOARD_FOUNDATION.md` — active R3 M2 Notice Board foundation contract.
+- `evidence/r3-m2-2026-09-16/ACCEPTANCE_MATRIX.md` — active automated/live acceptance matrix for `0.13.0`.
 
 ## Configuration and datapacks
 
-- `CONFIGURATION_AND_DATAPACKS.md` — supported R2 server configuration, Comfort/Food/Safety tags, version-1 Comfort predicates and crop definitions, reload behavior, compatibility boundaries, and M6 performance diagnostics.
+- `CONFIGURATION_AND_DATAPACKS.md` — supported server configuration, Comfort/Food/Safety tags, Comfort predicates and crop definitions, reload behavior, compatibility boundaries, and retained performance diagnostics.
 - `examples/comfort/README.md` — documentation-only optional furniture compatibility example.
 
-R3 M1 may add new documented tag/rule surfaces as implementation lands; the M1 contract is the design owner until those runtime surfaces exist.
+New Revision 3 tag/rule surfaces must be documented when their runtime behavior becomes supported.
 
 ## Implementation tracking
 
-- `implementation/HOMETOWN_IMPLEMENTATION_STATUS.md` — current milestone status, implementation ownership, and validation checkpoint.
+- `implementation/HOMETOWN_IMPLEMENTATION_STATUS.md` — single current milestone status, implementation ownership, validation checkpoint, and immediate next sequence.
 
 ## Historical technical reference
 
@@ -36,4 +37,4 @@ R3 M1 may add new documented tag/rule surfaces as implementation lands; the M1 c
 
 ## Development rule
 
-Keep gameplay changes, repository-organization changes, and evidence/checkpoint updates in clearly scoped commits or branches. A milestone should not be called complete merely because it compiles: automated tests, full build, specification conformance, and any required owner/play validation remain separate gates.
+Keep gameplay changes, repository-organization changes, and evidence/checkpoint updates in clearly scoped commits or branches. A milestone or version slice should not be called complete merely because it compiles: automated tests, full build, specification conformance, and required owner/live validation remain separate gates.
