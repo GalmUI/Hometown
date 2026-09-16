@@ -78,6 +78,9 @@ public final class TownAdministrationService {
             return fail(player, "Use the lectern inside the registered Town Hall to open Administration.");
         }
 
+        boolean noticeBoardActive = civic.facility(FacilityType.NOTICE_BOARD)
+                .map(board -> NoticeBoardService.revalidate(level, town, board) == NoticeBoardService.Validation.ACTIVE)
+                .orElse(false);
         boolean storageActive = civic.facility(FacilityType.STORAGE)
                 .map(storage -> StorageService.revalidate(level, town, storage).qualified())
                 .orElse(false);
@@ -86,32 +89,47 @@ public final class TownAdministrationService {
                 .orElse(false);
         var meal = DailyMealSavedData.get(server).get(town.id());
         boolean censusUsable = TownCensusService.forOperations(server, town.id(), level.getGameTime()).isPresent();
-        return Optional.of(snapshotFor(town, civic, storageActive, animalFarmActive,
+        return Optional.of(snapshotFor(town, civic, noticeBoardActive, storageActive, animalFarmActive,
                 DailyMealService.currentSummary(meal, level.getDayTime(), censusUsable),
                 DailyMealService.currentWarning(meal, level.getDayTime(), censusUsable)));
     }
 
     static TownAdministrationSnapshotPayload snapshotFor(Settlement town, TownCivicState civic) {
-        return snapshotFor(town, civic, false, false, "Not yet processed", false);
+        return snapshotFor(town, civic, false, false, false, "Not yet processed", false);
     }
 
     static TownAdministrationSnapshotPayload snapshotFor(
             Settlement town, TownCivicState civic, boolean storageActive) {
-        return snapshotFor(town, civic, storageActive, false, "Not yet processed", false);
+        return snapshotFor(town, civic, false, storageActive, false, "Not yet processed", false);
     }
 
     static TownAdministrationSnapshotPayload snapshotFor(
             Settlement town, TownCivicState civic, boolean storageActive, boolean animalFarmActive) {
-        return snapshotFor(town, civic, storageActive, animalFarmActive, "Not yet processed", false);
+        return snapshotFor(town, civic, false, storageActive, animalFarmActive, "Not yet processed", false);
+    }
+
+    static TownAdministrationSnapshotPayload snapshotFor(
+            Settlement town, TownCivicState civic, boolean noticeBoardActive,
+            boolean storageActive, boolean animalFarmActive) {
+        return snapshotFor(town, civic, noticeBoardActive, storageActive, animalFarmActive,
+                "Not yet processed", false);
     }
 
     static TownAdministrationSnapshotPayload snapshotFor(
             Settlement town, TownCivicState civic, boolean storageActive, boolean animalFarmActive,
             String mealSummary, boolean mealWarning) {
+        return snapshotFor(town, civic, false, storageActive, animalFarmActive, mealSummary, mealWarning);
+    }
+
+    static TownAdministrationSnapshotPayload snapshotFor(
+            Settlement town, TownCivicState civic, boolean noticeBoardActive,
+            boolean storageActive, boolean animalFarmActive,
+            String mealSummary, boolean mealWarning) {
         Objects.requireNonNull(town);
         Objects.requireNonNull(civic);
         var primary = civic.primaryColor().orElseThrow();
         var secondary = civic.secondaryColor().orElseThrow();
+        boolean noticeBoardEstablished = civic.facility(FacilityType.NOTICE_BOARD).isPresent();
         boolean storageEstablished = civic.facility(FacilityType.STORAGE).isPresent();
         boolean animalFarmEstablished = civic.facility(FacilityType.ANIMAL_FARM).isPresent();
         return new TownAdministrationSnapshotPayload(
@@ -122,6 +140,8 @@ public final class TownAdministrationService {
                 civic.isUnlocked(ProgressionUnlock.TOWN_HALL),
                 true,
                 civic.isUnlocked(ProgressionUnlock.NOTICE_BOARD),
+                noticeBoardEstablished,
+                noticeBoardEstablished && noticeBoardActive,
                 civic.isUnlocked(ProgressionUnlock.CIVIC_PROJECTS),
                 civic.isUnlocked(ProgressionUnlock.STORAGE),
                 storageEstablished,

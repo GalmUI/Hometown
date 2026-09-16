@@ -111,8 +111,8 @@ public final class TownAdministrationScreen extends Screen {
 
         progressionRow(graphics, left, contentY + 18, rowWidth,
                 "Town Hall", snapshot.townHallEstablished(), false);
-        progressionRow(graphics, left, contentY + 42, rowWidth,
-                "Notice Board", snapshot.noticeBoardUnlocked(), true);
+        facilityRow(graphics, left, contentY + 42, rowWidth, "Notice Board",
+                snapshot.noticeBoardUnlocked(), snapshot.noticeBoardEstablished(), snapshot.noticeBoardActive());
         progressionRow(graphics, left, contentY + 66, rowWidth,
                 "Civic Projects", snapshot.civicProjectsUnlocked(), true);
         facilityRow(graphics, left, contentY + 90, rowWidth, "Storage",

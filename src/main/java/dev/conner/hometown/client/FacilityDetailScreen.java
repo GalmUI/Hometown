@@ -192,6 +192,7 @@ public final class FacilityDetailScreen extends Screen {
             case TOWN_HALL -> "Town Hall";
             case STORAGE -> "Town Storage";
             case ANIMAL_FARM -> "Animal Farm";
+            case NOTICE_BOARD -> "Notice Board";
         };
     }
 

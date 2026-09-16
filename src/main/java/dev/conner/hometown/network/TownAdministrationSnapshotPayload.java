@@ -17,6 +17,8 @@ public record TownAdministrationSnapshotPayload(
         boolean townHallEstablished,
         boolean townHallActive,
         boolean noticeBoardUnlocked,
+        boolean noticeBoardEstablished,
+        boolean noticeBoardActive,
         boolean civicProjectsUnlocked,
         boolean storageUnlocked,
         boolean storageEstablished,
@@ -31,7 +33,7 @@ public record TownAdministrationSnapshotPayload(
     public static final Type<TownAdministrationSnapshotPayload> TYPE = new Type<>(
             ResourceLocation.fromNamespaceAndPath(Hometown.MOD_ID, "town_administration_snapshot"));
 
-    /** Compatibility constructor for pre-0.11 tests/callers that do not yet supply meal state. */
+    /** Compatibility constructor for pre-0.13 callers that do not supply Notice Board facility state. */
     public TownAdministrationSnapshotPayload(
             UUID settlementId, String townName, DyeColor primaryColor, DyeColor secondaryColor,
             boolean townHallEstablished, boolean townHallActive, boolean noticeBoardUnlocked,
@@ -39,8 +41,22 @@ public record TownAdministrationSnapshotPayload(
             boolean storageActive, boolean animalFarmsUnlocked, boolean animalFarmEstablished,
             boolean animalFarmActive) {
         this(settlementId, townName, primaryColor, secondaryColor, townHallEstablished, townHallActive,
-                noticeBoardUnlocked, civicProjectsUnlocked, storageUnlocked, storageEstablished, storageActive,
-                animalFarmsUnlocked, animalFarmEstablished, animalFarmActive, "Not yet processed", false);
+                noticeBoardUnlocked, false, false, civicProjectsUnlocked, storageUnlocked, storageEstablished,
+                storageActive, animalFarmsUnlocked, animalFarmEstablished, animalFarmActive,
+                "Not yet processed", false);
+    }
+
+    /** Compatibility constructor for pre-0.13 callers that already supply Daily Meal state. */
+    public TownAdministrationSnapshotPayload(
+            UUID settlementId, String townName, DyeColor primaryColor, DyeColor secondaryColor,
+            boolean townHallEstablished, boolean townHallActive, boolean noticeBoardUnlocked,
+            boolean civicProjectsUnlocked, boolean storageUnlocked, boolean storageEstablished,
+            boolean storageActive, boolean animalFarmsUnlocked, boolean animalFarmEstablished,
+            boolean animalFarmActive, String dailyMealSummary, boolean dailyMealWarning) {
+        this(settlementId, townName, primaryColor, secondaryColor, townHallEstablished, townHallActive,
+                noticeBoardUnlocked, false, false, civicProjectsUnlocked, storageUnlocked, storageEstablished,
+                storageActive, animalFarmsUnlocked, animalFarmEstablished, animalFarmActive,
+                dailyMealSummary, dailyMealWarning);
     }
 
     public static final StreamCodec<FriendlyByteBuf, TownAdministrationSnapshotPayload> STREAM_CODEC = StreamCodec.of(
@@ -52,6 +68,8 @@ public record TownAdministrationSnapshotPayload(
                 buffer.writeBoolean(value.townHallEstablished());
                 buffer.writeBoolean(value.townHallActive());
                 buffer.writeBoolean(value.noticeBoardUnlocked());
+                buffer.writeBoolean(value.noticeBoardEstablished());
+                buffer.writeBoolean(value.noticeBoardActive());
                 buffer.writeBoolean(value.civicProjectsUnlocked());
                 buffer.writeBoolean(value.storageUnlocked());
                 buffer.writeBoolean(value.storageEstablished());
@@ -77,6 +95,8 @@ public record TownAdministrationSnapshotPayload(
                     buffer.readBoolean(),
                     buffer.readBoolean(),
                     buffer.readBoolean(),
+                    buffer.readBoolean(),
+                    buffer.readBoolean(),
                     buffer.readUtf(WIRE_NAME_LIMIT),
                     buffer.readBoolean()));
 
@@ -90,6 +110,12 @@ public record TownAdministrationSnapshotPayload(
         }
         if (townName.length() > WIRE_NAME_LIMIT || dailyMealSummary.length() > WIRE_NAME_LIMIT) {
             throw new IllegalArgumentException("Town Administration text exceeds wire limit");
+        }
+        if (noticeBoardEstablished && !noticeBoardUnlocked) {
+            throw new IllegalArgumentException("Established Notice Board must be unlocked");
+        }
+        if (noticeBoardActive && !noticeBoardEstablished) {
+            throw new IllegalArgumentException("Active Notice Board must be established");
         }
         if (storageEstablished && !storageUnlocked) {
             throw new IllegalArgumentException("Established Storage must be unlocked");

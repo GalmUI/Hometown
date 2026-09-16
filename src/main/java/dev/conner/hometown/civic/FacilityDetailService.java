@@ -96,6 +96,14 @@ public final class FacilityDetailService {
                 var operations = AnimalFarmOperationsService.snapshot(level, town, result);
                 yield animalFarmSnapshotFor(town, civic, marker, result, operations, dayTime);
             }
+            case NOTICE_BOARD -> {
+                var validation = NoticeBoardService.revalidate(level, town, marker);
+                boolean active = validation == NoticeBoardService.Validation.ACTIVE;
+                yield genericSnapshot(town, civic, marker, active,
+                        active ? null : NoticeBoardService.validationMessage(validation),
+                        "Public civic notice point for town projects and communal work.",
+                        "Civic Projects are unlocked, but project posting and contributions begin in the next M2 slice.");
+            }
         };
     }
 
