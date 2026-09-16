@@ -5,7 +5,7 @@
 **Specification Revision:** Revision 3 active; Revision 2 complete baseline  
 **Current Milestone:** R3 M2 — Notice Board & Civic Projects  
 **Current implementation slice:** `0.13.0` — Notice Board foundation  
-**Status:** **IMPLEMENTED / CI GREEN — owner live validation pending**  
+**Status:** **IMPLEMENTED / CI GREEN — owner live validation in progress**  
 **Current accepted main baseline:** `0.12.0` — completed R3 M1, merged to `main`  
 **Development branch:** `r3-m2`  
 **0.13.0 contract:** `docs/implementation/R3_0_13_0_NOTICE_BOARD_FOUNDATION.md`  
@@ -71,7 +71,7 @@ The milestone should not be considered complete until one real civic project can
 
 ## `0.13.0` Notice Board implementation checkpoint
 
-Branch head implementation commit: `9670327d47ecd267a9ccf6c715e45124ac6ab0eb`.
+Implementation commit: `9670327d47ecd267a9ccf6c715e45124ac6ab0eb`.
 
 GitHub Actions run **35056996223** on that commit:
 
@@ -93,7 +93,13 @@ The Notice Board contract currently defines:
 - Civic Projects remain explicitly unimplemented in this slice;
 - no Notice Board History event is invented before M2 project/history semantics are defined.
 
-Automated CI is complete; owner live validation remains required before `0.13.0` is accepted.
+Owner live validation in Osea has now confirmed the happy-path registration, visible sign-color feedback, Facility Detail `Established — Active` state, Town Administration Notice Board state, refusal to register a second board while the original remains valid, successful replacement after invalidating the original, and successful loading/running of the `0.13.0` jar.
+
+Remaining live acceptance before `0.13.0` can be called complete:
+
+- save/full-restart persistence of the replacement Notice Board;
+- unloaded/unavailable existing-board fail-closed behavior;
+- a representative R3 M1 smoke check on the `0.13.0` build.
 
 ## Accepted architectural boundary carried into Revision 3
 
@@ -110,6 +116,6 @@ Revision 3 continues to build on, not bypass, the accepted Revision 2 contracts:
 
 ## Immediate next sequence
 
-1. Owner live-test `0.13.0` Notice Board registration, detail UI, Administration state, replacement behavior and save/reload persistence.
-2. Record the live outcome in the M2 acceptance matrix and patch any defects discovered.
+1. Finish the remaining `0.13.0` owner-live gates: full restart persistence, unavailable-board fail-closed behavior, and one representative M1 smoke check.
+2. Record the final result in the M2 acceptance matrix and patch any defect found.
 3. Once `0.13.0` is accepted, design and implement `0.13.1` Civic Project persistence/state on the same `r3-m2` milestone branch.
